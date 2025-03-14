@@ -1,12 +1,17 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { AppController } from "./app.controller";
-import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
+import { ProductsModule } from "./products/products.module";
+import { StoresModule } from "./stores/stores.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ".env", // ou o caminho para o seu arquivo .env
+    }),
     TypeOrmModule.forRoot({
       type: "mysql",
       host: "localhost",
@@ -19,8 +24,11 @@ import { UsersModule } from "./users/users.module";
     }),
     UsersModule,
     AuthModule,
+    ProductsModule,
+    StoresModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
+  exports: [],
 })
 export class AppModule {}

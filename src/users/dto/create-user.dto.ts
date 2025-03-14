@@ -1,19 +1,19 @@
-import { IsNotEmpty, IsUUID, MinLength } from "class-validator";
+import { IsNotEmpty, MinLength } from "class-validator";
+import { Role } from "src/enums/roles";
 
 export class CreateUserDTO {
-  @IsUUID()
-  id: number;
-
-  @IsNotEmpty({ message: "Username cannot be empty" })
-  username: string;
-
-  @IsNotEmpty({ message: "Password cannot be empty" })
-  @MinLength(6, { message: "Password must have 6 or more character" })
-  password: string;
-
-  @IsNotEmpty({ message: "Name cannot be empty" })
+  @IsNotEmpty()
   name: string;
 
-  @IsNotEmpty({ message: "E-mail cannot be empty" })
+  @IsNotEmpty()
+  username: string;
+
+  @IsNotEmpty()
   email: string;
+
+  @IsNotEmpty()
+  @MinLength(6)
+  password: string;
+
+  role: Role;
 }

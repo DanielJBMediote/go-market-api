@@ -2,17 +2,17 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { AuthContextService } from "src/auth/auth-context.service";
 import { AuthModule } from "src/auth/auth.module";
-import { HashService } from "src/auth/hash.service";
-import { DatabaseModule } from "src/database/database.module";
-import { User } from "./entities/user.entity";
-import { UsersController } from "./users.controller";
-import { UsersService } from "./users.service";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+import { User } from "src/users/entities/user.entity";
+import { Store } from "./entities/store.entity";
+import { StoresController } from "./stores.controller";
+import { StoresService } from "./stores.service";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
-    DatabaseModule,
+    TypeOrmModule.forFeature([Store, User]),
     AuthModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -24,8 +24,8 @@ import { UsersService } from "./users.service";
       inject: [ConfigService],
     }),
   ],
-  controllers: [UsersController],
-  providers: [UsersService, HashService],
+  controllers: [StoresController],
+  providers: [StoresService, AuthContextService, JwtAuthGuard],
   exports: [TypeOrmModule],
 })
-export class UsersModule {}
+export class StoresModule {}

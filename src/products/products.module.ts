@@ -3,16 +3,13 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from "src/auth/auth.module";
-import { HashService } from "src/auth/hash.service";
-import { DatabaseModule } from "src/database/database.module";
-import { User } from "./entities/user.entity";
-import { UsersController } from "./users.controller";
-import { UsersService } from "./users.service";
+import { Product } from "./entities/product.entity";
+import { ProductsController } from "./products.controller";
+import { ProductsService } from "./products.service";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
-    DatabaseModule,
+    TypeOrmModule.forFeature([Product]),
     AuthModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -24,8 +21,8 @@ import { UsersService } from "./users.service";
       inject: [ConfigService],
     }),
   ],
-  controllers: [UsersController],
-  providers: [UsersService, HashService],
+  controllers: [ProductsController],
+  providers: [ProductsService],
   exports: [TypeOrmModule],
 })
-export class UsersModule {}
+export class ProductsModule {}
