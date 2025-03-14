@@ -7,7 +7,7 @@ export class AuthController {
 
   @Get("/sign-in")
   async auth(
-    @Body() { username, password }: { username: string; password: string }
+    @Body() { username, password }: { username: string; password: string },
   ) {
     return this.authService.signIn({ username, password });
   }

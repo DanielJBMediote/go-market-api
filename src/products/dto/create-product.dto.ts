@@ -1,4 +1,4 @@
-import { IsNotEmpty } from "class-validator";
+import { IsNotEmpty, Min } from "class-validator";
 
 export class CreateProductDTO {
   @IsNotEmpty()
@@ -8,6 +8,7 @@ export class CreateProductDTO {
   description: string;
 
   @IsNotEmpty()
+  @Min(0)
   price: number;
 
   @IsNotEmpty()

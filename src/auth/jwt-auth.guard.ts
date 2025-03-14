@@ -12,17 +12,20 @@ import { Request } from "express";
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private configService: ConfigService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request: Request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
 
     if (!token) throw new UnauthorizedException();
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        username: string;
+      }>(token, {
         secret: this.configService.get<string>("JWT_SECRET"),
       });
       request["user"] = payload;
@@ -33,11 +36,10 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   getUSerFromJwt(jwtToken: string) {
-    const payload = this.jwtService.decode(jwtToken) as {
-      sub: string;
-      username: string;
-    };
-    return payload;
+    const payload = this.jwtService.decode<{ sub: string; username: string }>(
+      jwtToken,
+    );
+    return payload as { sub: string; username: string };
   }
 
   extractTokenFromHeader(request: Request): string | undefined {

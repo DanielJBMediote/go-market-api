@@ -14,7 +14,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-    private readonly hashService: HashService
+    private readonly hashService: HashService,
   ) {}
 
   async signIn({ username, password }: { username: string; password: string }) {
@@ -26,7 +26,7 @@ export class AuthService {
 
     const isPasswordValid = await this.hashService.verifyPassword(
       password,
-      user.password
+      user.password,
     );
 
     if (!isPasswordValid) {

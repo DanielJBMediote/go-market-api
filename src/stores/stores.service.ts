@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { AuthContextService } from "src/auth/auth-context.service";
 import { WhereBuilder, WhereParams } from "src/database/where-builder.class";
@@ -24,7 +19,10 @@ export class StoresService {
   ) {}
 
   async create(createStoreDTO: CreateStoreDTO) {
-    const { name, ownerId, description, slug } = createStoreDTO;
+    const currentUser = this.authContextService.getCurrentUser();
+    const ownerId = Number(currentUser.sub);
+
+    const { name, description, slug } = createStoreDTO;
 
     if (!ownerId) throw new BadRequestException("OwnerId must be provided.");
 
@@ -33,14 +31,14 @@ export class StoresService {
       throw new BadRequestException("Storage already exists with this name.");
     }
 
-    const owner = await this.userRepository.findOneBy({ id: ownerId });
+    const owner = await this.userRepository.findOneBy({ id: Number(ownerId) });
     if (!owner) throw new BadRequestException("User does not exists.");
 
     const createdStore = this.storeRepository.create({
       name,
       description,
       slug,
-      owner,
+      owner: { id: ownerId },
     });
 
     return this.storeRepository.save(createdStore);
@@ -48,11 +46,7 @@ export class StoresService {
 
   async findAll(whereParams?: WhereParams) {
     const where = new WhereBuilder()
-      .addCondition(
-        whereParams?.column,
-        whereParams?.value,
-        whereParams?.operator
-      )
+      .addCondition(whereParams?.column, whereParams?.value, whereParams?.operator)
       .build();
 
     return await this.storeRepository.find({

@@ -15,7 +15,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-    private readonly hashService: HashService
+    private readonly hashService: HashService,
   ) {}
 
   async create(createUserDTO: CreateUserDTO) {
@@ -31,7 +31,7 @@ export class UsersService {
     }
 
     const hashedPassword = await this.hashService.hashPassword(
-      createUserDTO.password
+      createUserDTO.password,
     );
 
     const { name, email, role, username } = createUserDTO;

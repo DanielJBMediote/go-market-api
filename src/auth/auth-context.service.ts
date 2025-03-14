@@ -7,18 +7,18 @@ import { JwtAuthGuard } from "./jwt-auth.guard";
 export class AuthContextService {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
-    private readonly jwtAuthGuard: JwtAuthGuard
+    private readonly jwtAuthGuard: JwtAuthGuard,
   ) {}
 
   getCurrentUser() {
     const token = this.jwtAuthGuard.extractTokenFromHeader(this.request);
     if (!token) {
-      throw new BadRequestException("Token not found.")
+      throw new BadRequestException("Token not found.");
     }
     try {
       return this.jwtAuthGuard.getUSerFromJwt(token);
     } catch {
-      throw new BadRequestException("User Context not found.")
+      throw new BadRequestException("User Context not found.");
     }
   }
 }

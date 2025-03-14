@@ -28,7 +28,7 @@ export class WhereBuilder {
   addCondition(
     column?: string,
     value?: string | Date,
-    operator: OperatorType = "EQUALS"
+    operator: OperatorType = "EQUALS",
   ) {
     if (!column || value === undefined || value === null) return this;
 
