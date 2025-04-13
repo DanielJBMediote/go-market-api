@@ -1,0 +1,216 @@
+package gomarketapi.service;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import gomarketapi.dto.products.ProductCreateDTO;
+import gomarketapi.dto.products.ProductReadDTO;
+import gomarketapi.exceptions.NotFoundException;
+import gomarketapi.helpers.Where;
+import gomarketapi.helpers.WhereBuilder;
+import gomarketapi.mapper.ProductMapper;
+import gomarketapi.model.CategoryBean;
+import gomarketapi.model.FileBean;
+import gomarketapi.model.ProductBean;
+import gomarketapi.model.ProductFileBean;
+import gomarketapi.model.StoreBean;
+import gomarketapi.repository.CategoryRepository;
+import gomarketapi.repository.FileRepository;
+import gomarketapi.repository.ProductFileRepository;
+import gomarketapi.repository.ProductRepository;
+import gomarketapi.repository.StoreRepository;
+import jakarta.transaction.Transactional;
+
+@Service
+public class ProductService {
+
+  private final ProductRepository productRepository;
+  private final CategoryRepository categoryRepository;
+  private final StoreRepository storeRepository;
+  private final FileRepository fileRepository;
+  private final FileService fileService;
+  private final ProductFileRepository productFileRepository;
+
+  public ProductService(
+      ProductRepository productRepository,
+      CategoryRepository categoryRepository,
+      StoreRepository storeRepository,
+      FileRepository fileRepository,
+      FileService fileService,
+      ProductFileRepository productFileRepository) {
+    this.productRepository = productRepository;
+    this.categoryRepository = categoryRepository;
+    this.storeRepository = storeRepository;
+    this.fileRepository = fileRepository;
+    this.fileService = fileService;
+    this.productFileRepository = productFileRepository;
+  }
+
+  public ProductReadDTO create(ProductCreateDTO prodCreateDTO) {
+
+    ProductBean productBean = new ProductBean();
+
+    productBean.setName(prodCreateDTO.getName());
+    productBean.setDescription(prodCreateDTO.getDescription());
+    productBean.setIsActive(true);
+    productBean.setIsFeatured(false);
+
+    CategoryBean categoryBean = this.categoryRepository.findById(prodCreateDTO.getCategory().getId())
+        .orElseThrow(() -> new NotFoundException("Category not found with id: " + prodCreateDTO.getCategory().getId()));
+    StoreBean storeBean = this.storeRepository.findById(prodCreateDTO.getStore().getId())
+        .orElseThrow(() -> new NotFoundException("Store not found with id: " + prodCreateDTO.getStore().getId()));
+
+    productBean.setCategory(categoryBean);
+    productBean.setStore(storeBean);
+
+    productBean.setPrice(prodCreateDTO.getPrice());
+    productBean.setLowestPrice(prodCreateDTO.getPrice());
+    productBean.setHighestPrice(prodCreateDTO.getPrice());
+
+    productBean = this.productRepository.save(productBean);
+
+    return ProductMapper.toDTO(productBean);
+  }
+
+  public ProductReadDTO getById(Long id) {
+    ProductBean prodBean = this.productRepository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Product not found with id: " + id + "."));
+
+    return ProductMapper.toDTO(prodBean);
+  }
+
+  public List<ProductReadDTO> getAll(String encodedURI) {
+    WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
+    // wb.addWhere(new Where("isActive", true, Where.Operator.EQUALS));
+
+    Specification<ProductBean> spec = wb.parseWhereEncodedURIParams(encodedURI).build();
+    List<ProductBean> prodList = this.productRepository.findAll(spec);
+
+    return prodList.stream().map(ProductMapper::toDTO).toList();
+  }
+
+  public ProductReadDTO update(Long id, ProductReadDTO prodDTO) {
+    ProductBean prodBean = this.productRepository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Product not found with id: " + id + "."));
+
+    prodBean.setName(prodDTO.getName());
+    prodBean.setDescription(prodDTO.getDescription());
+    prodBean.setIsActive(prodDTO.getIsActive());
+    prodBean.setIsFeatured(prodDTO.getIsFeatured());
+    prodBean.getStore().setId(prodDTO.getStore().getId());
+
+    // Carrega a categoria existente do banco (ou verifica se existe)
+    CategoryBean categoryBean = this.categoryRepository.findById(prodDTO.getCategory().getId())
+        .orElseThrow(() -> new NotFoundException("Category not found with id: " + prodDTO.getCategory().getId()));
+
+    prodBean.setCategory(categoryBean);
+    prodBean.setPrice(prodDTO.getPrice());
+
+    // Update LowestPrice only if the current Price is less than the old LowestPrice
+    if (prodBean.getPrice().compareTo(prodBean.getLowestPrice()) == -1) {
+      prodBean.setLowestPrice(prodBean.getPrice());
+    }
+    // Update HighestPrice only if the current Price is greater than the old
+    // HighestPrice
+    if (prodBean.getPrice().compareTo(prodBean.getHighestPrice()) == 1) {
+      prodBean.setHighestPrice(prodBean.getPrice());
+    }
+
+    ProductBean updatedProductBean = this.productRepository.save(prodBean);
+    return ProductMapper.toDTO(updatedProductBean);
+  }
+
+  public void delete(Long id) {
+    ProductBean productBean = productRepository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Product not found with ID: " + id));
+
+    this.productRepository.delete(productBean);
+  }
+
+  @Transactional
+  public void updateImages(Long id, ProductReadDTO previousProduct, MultipartFile[] files) {
+
+    ProductBean productBean = productRepository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Product not found with ID: " + id));
+
+    WhereBuilder<ProductFileBean> wb = new WhereBuilder<>(ProductFileBean.class);
+    wb.addWhere(new Where("product.id", productBean.getId(), Where.Operator.EQUALS));
+
+    Specification<ProductFileBean> spec = wb.build();
+    List<ProductFileBean> existingProductFiles = this.productFileRepository.findAll(spec);
+
+    if (productBean.getImages() == null) {
+      productBean.setImages(new ArrayList<>());
+    }
+
+    List<Long> remainingImageIds = previousProduct.getImages().stream().map(pf -> pf.getId()).toList();
+
+    // 4. Filtra os arquivos existentes para deletar apenas os que não estão na
+    // lista
+    // nova
+    List<ProductFileBean> productFilesToDelete = existingProductFiles.stream()
+        .filter(pf -> !remainingImageIds.contains(pf.getId()))
+        .toList();
+
+    // 5. Deleta os arquivos obsoletos (via repositório para evitar problemas com
+    // JPA)
+    List<FileBean> filesToDelete = productFilesToDelete.stream().map(pf -> pf.getFile()).toList();
+
+    this.fileRepository.deleteAll(filesToDelete);
+    this.productFileRepository.deleteAll(productFilesToDelete);
+
+    productBean.getImages().removeAll(productFilesToDelete);
+    // 6. Adiciona os novos arquivos (apenas os que não existiam ou foram
+    // modificados)
+    if (files != null && files.length > 0) {
+      Arrays.stream(files)
+          .filter(file -> {
+            // Verifica se o arquivo já existe (com mesmo nome e tamanho)
+            return existingProductFiles.stream()
+                .noneMatch(existingFile -> existingFile.getFile().getName().equals(file.getOriginalFilename()) &&
+                    existingFile.getFile().getSize().longValue() == file.getSize());
+          })
+          .forEach(file -> {
+            try {
+              FileBean newFileBean = fileService.createFileBean(file);
+              FileBean savedFile = fileRepository.save(newFileBean);
+
+              ProductFileBean productFile = new ProductFileBean();
+              productFile.setFile(savedFile);
+              productFile.setProduct(productBean);
+
+              productBean.getImages().add(productFile);
+            } catch (IOException e) {
+              throw new RuntimeException("Failed to process file: " + file.getOriginalFilename(), e);
+            }
+          });
+    }
+
+    // 7. Atualiza o produto (sem necessidade de clear() manual)
+    productRepository.save(productBean);
+  }
+
+  public List<ProductReadDTO> getAllFeatured(String encodedURI) {
+    WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
+    wb.parseWhereEncodedURIParams(encodedURI);
+    wb.addWhere(new Where("isActive", true, Where.Operator.EQUALS));
+
+    Specification<ProductBean> spec = wb.build();
+    List<ProductBean> pbList = this.productRepository.findAll(spec);
+
+    pbList.sort((pb1, pb2) -> {
+      int f1 = pb1.getIsFeatured() ? 1 : 0;
+      int f2 = pb2.getIsFeatured() ? 1 : 0;
+      return f2 - f1;
+    });
+
+    return pbList.stream().map(ProductMapper::toDTO).toList();
+  }
+
+}
