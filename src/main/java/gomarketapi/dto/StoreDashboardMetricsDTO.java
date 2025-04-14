@@ -3,9 +3,11 @@ package gomarketapi.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+import gomarketapi.dto.store.StoreReadDTO;
+
 public class StoreDashboardMetricsDTO {
 
-  private StoreDTO store;
+  private StoreReadDTO store;
 
   private Integer monthlySales;
   private Integer dailySales;
@@ -91,11 +93,11 @@ public class StoreDashboardMetricsDTO {
     this.diffDailyAvarageSalesPercent = diffDailyAvarageSalesPercent;
   }
 
-  public StoreDTO getStore() {
+  public StoreReadDTO getStore() {
     return store;
   }
 
-  public void setStore(StoreDTO store) {
+  public void setStore(StoreReadDTO store) {
     this.store = store;
   }
 

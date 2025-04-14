@@ -213,4 +213,20 @@ public class ProductService {
     return pbList.stream().map(ProductMapper::toDTO).toList();
   }
 
+  public void updateProductsAsFeatured(List<Long> prodIds) {
+    WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
+    wb.addWhere(new Where("id", prodIds, Where.Operator.IN));
+    Specification<ProductBean> spec = wb.build();
+
+    List<ProductBean> prodList = this.productRepository.findAll(spec);
+
+    for (ProductBean productBean : prodList) {
+      if (productBean.getIsFeatured()) {
+        continue;
+      }
+      productBean.setIsFeatured(true);
+    }
+    this.productRepository.saveAll(prodList);
+  }
+
 }

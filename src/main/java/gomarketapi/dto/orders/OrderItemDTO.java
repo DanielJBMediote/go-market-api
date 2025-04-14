@@ -1,15 +1,16 @@
-package gomarketapi.dto;
+package gomarketapi.dto.orders;
 
 import java.math.BigDecimal;
 
 import gomarketapi.dto.products.ProductReadDTO;
+import gomarketapi.dto.store.StoreReadDTO;
 import gomarketapi.model.OrderItemBean;
 
 public class OrderItemDTO {
 
   private Long id;
   private ProductReadDTO product;
-  private OrderDTO order;
+  private OrderReadDTO order;
   private Integer quantity;
   private BigDecimal unitPrice;
 
@@ -25,11 +26,12 @@ public class OrderItemDTO {
     productDTO.setName(orderItemBean.getProduct().getName());
     productDTO.setPrice(orderItemBean.getProduct().getPrice());
 
-    StoreDTO storeDTO = new StoreDTO();
+    StoreReadDTO storeDTO = new StoreReadDTO();
     storeDTO.setId(orderItemBean.getProduct().getStore().getId());
+    storeDTO.setName(orderItemBean.getProduct().getStore().getName());
     productDTO.setStore(storeDTO);
-    this.product = productDTO;
 
+    this.product = productDTO;
     this.quantity = orderItemBean.getQuantity();
     this.unitPrice = orderItemBean.getUnitPrice();
   }
@@ -42,19 +44,19 @@ public class OrderItemDTO {
     this.id = id;
   }
 
-  public ProductReadDTO getProductId() {
+  public ProductReadDTO getProduct() {
     return product;
   }
 
-  public void setProductId(ProductReadDTO product) {
+  public void setProduct(ProductReadDTO product) {
     this.product = product;
   }
 
-  public OrderDTO getOrder() {
+  public OrderReadDTO getOrder() {
     return order;
   }
 
-  public void setOrder(OrderDTO order) {
+  public void setOrder(OrderReadDTO order) {
     this.order = order;
   }
 

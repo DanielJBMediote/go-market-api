@@ -1,12 +1,13 @@
-package gomarketapi.dto;
+package gomarketapi.dto.store;
 
 import java.time.LocalDateTime;
 
+import gomarketapi.dto.UserDTO;
 import gomarketapi.mapper.UserMapper;
 import gomarketapi.model.FileBean;
 import gomarketapi.model.StoreBean;
 
-public class StoreDTO {
+public class StoreReadDTO {
 
   private Long id;
   private String name;
@@ -19,11 +20,11 @@ public class StoreDTO {
   private UserDTO owner;
   private FileBean logo;
 
-  public StoreDTO() {
+  public StoreReadDTO() {
 
   }
 
-  public StoreDTO(StoreBean storeBean) {
+  public StoreReadDTO(StoreBean storeBean) {
     this.id = storeBean.getId();
     this.name = storeBean.getName();
     this.slug = storeBean.getSlug();

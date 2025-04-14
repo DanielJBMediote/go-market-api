@@ -2,13 +2,13 @@ package gomarketapi.mapper;
 
 import org.springframework.stereotype.Component;
 
-import gomarketapi.dto.StoreDTO;
+import gomarketapi.dto.store.StoreReadDTO;
 import gomarketapi.model.StoreBean;
 
 @Component
 public class StoreMapper {
 
-  public static StoreBean toEntityBean(StoreDTO storeDTO) {
+  public static StoreBean toEntityBean(StoreReadDTO storeDTO) {
     StoreBean storeBean = new StoreBean();
 
     storeBean.setId(storeDTO.getId());
@@ -20,8 +20,8 @@ public class StoreMapper {
     return storeBean;
   }
 
-  public static StoreDTO toDTO(StoreBean store) {
-    StoreDTO storeDTO = new StoreDTO();
+  public static StoreReadDTO toDTO(StoreBean store) {
+    StoreReadDTO storeDTO = new StoreReadDTO();
 
     storeDTO.setId(store.getId());
     storeDTO.setName(store.getName());
@@ -34,6 +34,7 @@ public class StoreMapper {
 
     if (store.getLogo() != null) {
       store.getLogo().setData(null);
+      store.getLogo().setBase64Data(null);
       storeDTO.setLogo(store.getLogo());
     }
 

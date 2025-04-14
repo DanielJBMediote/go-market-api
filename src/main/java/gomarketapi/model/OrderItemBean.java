@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -17,6 +18,7 @@ public class OrderItemBean extends Bean {
   private OrderBean order;
 
   @ManyToOne
+  @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
   private ProductBean product;
 
   private Integer quantity;

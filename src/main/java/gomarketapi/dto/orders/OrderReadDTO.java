@@ -1,15 +1,16 @@
-package gomarketapi.dto;
+package gomarketapi.dto.orders;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import gomarketapi.dto.UserDTO;
 import gomarketapi.enums.OrderStatus;
 import gomarketapi.enums.PaymentMethod;
 import gomarketapi.mapper.UserMapper;
 import gomarketapi.model.OrderBean;
 
-public class OrderDTO {
+public class OrderReadDTO {
 
   private Long id;
   private UserDTO client;
@@ -18,27 +19,28 @@ public class OrderDTO {
   private PaymentMethod paymentMethod;
   private BigDecimal totalAmount;
   private BigDecimal taxes;
-  private BigDecimal discont;
+  private BigDecimal discount;
   private String shippingAddress;
   private String uuid;
 
   private OrderStatus status;
   private LocalDateTime paymentDate;
-  private LocalDateTime deliveredDate;
+  private LocalDateTime deliveryDate;
 
-  public OrderDTO() {
+  public OrderReadDTO() {
 
   }
 
-  public OrderDTO(OrderBean orderBean) {
+  public OrderReadDTO(OrderBean orderBean) {
     this.id = orderBean.getId();
     this.client = UserMapper.toDTO(orderBean.getClient());
     this.status = orderBean.getStatus();
     this.paymentDate = orderBean.getPaymentDate();
     this.paymentMethod = orderBean.getPaymentMethod();
-    this.deliveredDate = orderBean.getDeliveredDate();
+    this.deliveryDate = orderBean.getDeliveryDate();
+    this.shippingAddress = orderBean.getShippingAddress();
     this.taxes = orderBean.getTaxes();
-    this.discont = orderBean.getDiscont();
+    this.discount = orderBean.getDiscount();
     this.totalAmount = orderBean.getTotalAmount();
     this.items = orderBean.getItems().stream().map(item -> new OrderItemDTO(item)).toList();
     this.uuid = orderBean.getUUID();
@@ -100,12 +102,12 @@ public class OrderDTO {
     this.taxes = taxes;
   }
 
-  public BigDecimal getDiscont() {
-    return discont;
+  public BigDecimal getDiscount() {
+    return discount;
   }
 
-  public void setDiscont(BigDecimal discont) {
-    this.discont = discont;
+  public void setDiscount(BigDecimal discont) {
+    this.discount = discont;
   }
 
   public String getShippingAddress() {
@@ -124,12 +126,12 @@ public class OrderDTO {
     this.paymentDate = paymentDate;
   }
 
-  public LocalDateTime getDeliveredDate() {
-    return deliveredDate;
+  public LocalDateTime getDeliveryDate() {
+    return deliveryDate;
   }
 
-  public void setDeliveredDate(LocalDateTime deliveredDate) {
-    this.deliveredDate = deliveredDate;
+  public void setDeliveryDate(LocalDateTime deliveryDate) {
+    this.deliveryDate = deliveryDate;
   }
 
   public String getUuid() {

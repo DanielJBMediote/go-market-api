@@ -1,56 +1,90 @@
 package gomarketapi.service;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import gomarketapi.contexts.UserContext;
-import gomarketapi.dto.OrderDTO;
+import gomarketapi.dto.orders.OrderCreateDTO;
+import gomarketapi.dto.orders.OrderItemDTO;
+import gomarketapi.dto.orders.OrderReadDTO;
 import gomarketapi.enums.OrderStatus;
 import gomarketapi.exceptions.NotFoundException;
+import gomarketapi.helpers.ResponseBuilder;
 import gomarketapi.helpers.Where;
 import gomarketapi.helpers.WhereBuilder;
+import gomarketapi.mapper.ProductMapper;
 import gomarketapi.model.OrderBean;
 import gomarketapi.model.OrderItemBean;
+import gomarketapi.model.UserBean;
+import gomarketapi.repository.OrderItemRepository;
 import gomarketapi.repository.OrderRepository;
 
 @Service
 public class OrderService {
 
   private final OrderRepository orderRepository;
+  private final OrderItemRepository orderItemRepository;
   private final UserContext userContext;
 
-  public OrderService(OrderRepository orderRepository, UserContext userContext) {
+  public OrderService(OrderRepository orderRepository, UserContext userContext,
+      OrderItemRepository orderItemRepository) {
     this.orderRepository = orderRepository;
+    this.orderItemRepository = orderItemRepository;
     this.userContext = userContext;
   }
 
-  public OrderDTO create(OrderDTO orderDTO) {
+  public OrderReadDTO create(OrderCreateDTO orderBody) {
     OrderBean orderBean = new OrderBean();
 
-    orderBean.setStatus(OrderStatus.PENDING);
-
-    orderBean.setTaxes(orderDTO.getTaxes());
-    orderBean.setDiscont(orderDTO.getDiscont());
-    orderBean.setTotalAmount(orderDTO.getTotalAmount());
     orderBean.setUUID(UUID.randomUUID().toString());
+    orderBean.setStatus(OrderStatus.PENDING);
+    orderBean.setTaxes(orderBody.getTaxes());
+    orderBean.setDiscount(orderBody.getDiscount());
+    orderBean.setClient(new UserBean(userContext.getUserId()));
+    orderBean.setDeliveryDate(null);
+    orderBean.setPaymentMethod(orderBody.getPaymentMethod());
+    orderBean.setShippingAddress(orderBody.getShippingAddress());
 
-    orderBean.setDeliveredDate(orderDTO.getDeliveredDate());
-    orderBean.setPaymentMethod(orderDTO.getPaymentMethod());
-    orderBean.setShippingAddress(orderDTO.getShippingAddress());
+    List<OrderItemBean> items = new ArrayList<>();
+    BigDecimal totalAmount = BigDecimal.ZERO;
 
-    orderBean.setItems(orderDTO.getItems()
-        .stream()
-        .map(orderItemDTO -> new OrderItemBean(orderItemDTO.getId()))
-        .toList());
+    for (OrderItemDTO itemDTO : orderBody.getItems()) {
+      OrderItemBean itemBean = new OrderItemBean();
 
-    orderBean = this.orderRepository.save(orderBean);
-    return new OrderDTO(orderBean);
+      BigDecimal productPrice = itemDTO.getProduct().getPrice();
+      Integer quantity = itemDTO.getQuantity();
+      BigDecimal totalPerProduct = productPrice.multiply(BigDecimal.valueOf(quantity));
+
+      itemBean.setProduct(ProductMapper.toEntityBean(itemDTO.getProduct()));
+      itemBean.setQuantity(quantity);
+      itemBean.setUnitPrice(productPrice);
+
+      totalAmount = totalAmount.add(totalPerProduct);
+      items.add(itemBean);
+    }
+
+    // Agora sim setamos o total e salvamos o pedido
+    orderBean.setTotalAmount(totalAmount);
+    OrderBean createdOrder = orderRepository.save(orderBean);
+
+    // Vinculamos os itens ao pedido e persistimos
+    for (OrderItemBean item : items) {
+      item.setOrder(orderBean);
+    }
+    orderItemRepository.saveAll(items);
+    orderBean.setItems(items);
+
+    return new OrderReadDTO(createdOrder);
   }
 
-  public List<OrderDTO> getAll(String where) {
+  public List<OrderReadDTO> getAll(String where) {
     Long userId = userContext.getUserId();
 
     WhereBuilder<OrderBean> wb = new WhereBuilder<>(OrderBean.class);
@@ -62,14 +96,61 @@ public class OrderService {
 
     List<OrderBean> list = this.orderRepository.findAll(spec);
 
-    return list.stream().map(item -> new OrderDTO(item)).toList();
+    list.sort((o1, o2) -> {
+      List<OrderStatus> priority = List.of(
+          OrderStatus.PENDING,
+          OrderStatus.PROCESSING,
+          OrderStatus.SHIPPED,
+          OrderStatus.DELIVERED,
+          OrderStatus.CANCELLED,
+          OrderStatus.REFUNDED,
+          OrderStatus.FAILED,
+          OrderStatus.COMPLETED);
+      return Integer.compare(priority.indexOf(o1.getStatus()), priority.indexOf(o2.getStatus()));
+    });
+
+    return list.stream().map(item -> new OrderReadDTO(item)).toList();
   }
 
-  public OrderDTO getById(Long id) {
+  public OrderReadDTO getById(Long id) {
     OrderBean orderBean = this.orderRepository.findById(id)
         .orElseThrow(() -> new NotFoundException("Order not found with ID: " + id));
 
-    return new OrderDTO(orderBean);
+    return new OrderReadDTO(orderBean);
+  }
+
+  public ResponseEntity<?> updateStatus(Long id) {
+    try {
+      OrderBean orderBean = this.orderRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Order not found with ID: " + id));
+
+      switch (orderBean.getStatus()) {
+        case OrderStatus.PENDING:
+          orderBean.setStatus(OrderStatus.PROCESSING);
+          break;
+        case OrderStatus.PROCESSING:
+          orderBean.setStatus(OrderStatus.SHIPPED);
+          break;
+        case OrderStatus.SHIPPED:
+          orderBean.setStatus(OrderStatus.DELIVERED);
+          break;
+        case OrderStatus.DELIVERED:
+          orderBean.setStatus(OrderStatus.COMPLETED);
+          break;
+        case OrderStatus.REFUNDED:
+        case OrderStatus.CANCELLED:
+        case OrderStatus.FAILED:
+        case OrderStatus.COMPLETED:
+          return ResponseBuilder
+              .badRequest("Cannot update status. Order is in a terminal state: " + orderBean.getStatus());
+      }
+
+      this.orderRepository.save(orderBean);
+
+      return ResponseBuilder.success("Order has been updated!");
+    } catch (NotFoundException e) {
+      return ResponseBuilder.error(HttpStatus.NOT_FOUND, e.getMessage());
+    }
   }
 
 }

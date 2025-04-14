@@ -64,6 +64,7 @@ public class ProductMapper {
     } else {
       images.forEach(image -> {
         image.getFile().setData(null);
+        image.getFile().setBase64Data(null);
         image.getFile().setCreatedAt(null);
         image.getFile().setUpdatedAt(null);
         image.setCreatedAt(null);

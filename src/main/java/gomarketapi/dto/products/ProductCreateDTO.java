@@ -2,7 +2,7 @@ package gomarketapi.dto.products;
 
 import java.math.BigDecimal;
 
-import gomarketapi.dto.StoreDTO;
+import gomarketapi.dto.store.StoreReadDTO;
 import gomarketapi.model.CategoryBean;
 
 public class ProductCreateDTO {
@@ -14,7 +14,7 @@ public class ProductCreateDTO {
 
   private BigDecimal price;
 
-  private StoreDTO store;
+  private StoreReadDTO store;
   private CategoryBean category;
 
   public String getName() {
@@ -33,7 +33,7 @@ public class ProductCreateDTO {
     return price;
   }
 
-  public StoreDTO getStore() {
+  public StoreReadDTO getStore() {
     return store;
   }
 

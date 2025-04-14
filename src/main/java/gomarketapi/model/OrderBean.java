@@ -42,12 +42,12 @@ public class OrderBean extends Bean {
 
   private BigDecimal totalAmount;
   private BigDecimal taxes;
-  private BigDecimal discont;
+  private BigDecimal discount;
 
   private String shippingAddress;
 
   private LocalDateTime paymentDate;
-  private LocalDateTime deliveredDate;
+  private LocalDateTime deliveryDate;
 
   public OrderBean() {
   }
@@ -104,12 +104,12 @@ public class OrderBean extends Bean {
     this.taxes = taxes;
   }
 
-  public BigDecimal getDiscont() {
-    return discont;
+  public BigDecimal getDiscount() {
+    return discount;
   }
 
-  public void setDiscont(BigDecimal discont) {
-    this.discont = discont;
+  public void setDiscount(BigDecimal discont) {
+    this.discount = discont;
   }
 
   public String getShippingAddress() {
@@ -128,12 +128,12 @@ public class OrderBean extends Bean {
     this.paymentDate = paymentDate;
   }
 
-  public LocalDateTime getDeliveredDate() {
-    return deliveredDate;
+  public LocalDateTime getDeliveryDate() {
+    return deliveryDate;
   }
 
-  public void setDeliveredDate(LocalDateTime deliveredDate) {
-    this.deliveredDate = deliveredDate;
+  public void setDeliveryDate(LocalDateTime deliveryDate) {
+    this.deliveryDate = deliveryDate;
   }
 
   public String getUUID() {

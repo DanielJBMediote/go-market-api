@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-import gomarketapi.dto.StoreDTO;
 import gomarketapi.dto.products.comments.ProductCommentReadDTO;
+import gomarketapi.dto.store.StoreReadDTO;
 import gomarketapi.mapper.ProductMapper;
 import gomarketapi.model.CategoryBean;
 import gomarketapi.model.ProductBean;
@@ -27,7 +27,7 @@ public class ProductReadDTO {
   private BigDecimal lowestPrice;
   private BigDecimal highestPrice;
 
-  private StoreDTO store;
+  private StoreReadDTO store;
   private CategoryBean category;
   private List<ProductFileBean> images;
   private List<ProductCommentReadDTO> comments;
@@ -49,7 +49,7 @@ public class ProductReadDTO {
     this.isActive = prodBean.getIsActive();
     this.isFeatured = prodBean.getIsFeatured();
     this.likes = prodBean.getLikes();
-    this.store = new StoreDTO(prodBean.getStore());
+    this.store = new StoreReadDTO(prodBean.getStore());
     this.price = prodBean.getPrice();
     this.lowestPrice = prodBean.getLowestPrice();
     this.highestPrice = prodBean.getHighestPrice();
@@ -129,11 +129,11 @@ public class ProductReadDTO {
     this.highestPrice = highestPrice;
   }
 
-  public StoreDTO getStore() {
+  public StoreReadDTO getStore() {
     return store;
   }
 
-  public void setStore(StoreDTO store) {
+  public void setStore(StoreReadDTO store) {
     this.store = store;
   }
 

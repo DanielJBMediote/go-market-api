@@ -11,19 +11,24 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import gomarketapi.contexts.UserContext;
 import gomarketapi.dto.ChartDataDTO;
-import gomarketapi.dto.StoreDTO;
 import gomarketapi.dto.StoreDashboardMetricsDTO;
+import gomarketapi.dto.store.StoreCreateDTO;
+import gomarketapi.dto.store.StoreReadDTO;
 import gomarketapi.exceptions.ForbiddenException;
 import gomarketapi.exceptions.NotFoundException;
+import gomarketapi.helpers.ResponseBuilder;
 import gomarketapi.helpers.WhereBuilder;
 import gomarketapi.mapper.StoreMapper;
 import gomarketapi.model.FileBean;
 import gomarketapi.model.StoreBean;
+import gomarketapi.model.UserBean;
 import gomarketapi.repository.FileRepository;
 import gomarketapi.repository.OrderRepository;
 import gomarketapi.repository.StoreRepository;
@@ -51,291 +56,334 @@ public class StoreService {
   }
 
   @Transactional
-  public StoreDTO create(StoreDTO storeDTO, MultipartFile file) {
+  public ResponseEntity<?> create(StoreCreateDTO storeBody, MultipartFile file) {
 
-    StoreBean store = new StoreBean();
-    store.setName(storeDTO.getName());
-    store.setDescription(storeDTO.getDescription());
-    store.setSlug(storeDTO.getSlug());
-    if (file != null) {
-      try {
-        FileBean fileBean = fileService.createFileBean(file);
-        FileBean newLogo = fileRepository.save(fileBean);
+    try {
+      StoreBean storeBean = new StoreBean();
+      storeBean.setName(storeBody.getName());
+      storeBean.setDescription(storeBody.getDescription());
+      storeBean.setSlug(storeBody.getSlug());
+      if (file != null) {
+        try {
+          FileBean fileBean = fileService.createFileBean(file);
+          FileBean newLogo = fileRepository.save(fileBean);
 
-        store.setLogo(newLogo);
-      } catch (IOException e) {
-        e.printStackTrace();
+          storeBean.setLogo(newLogo);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
+
+      Long ownerId = userContext.getUserId();
+      storeBean.setOwner(new UserBean(ownerId));
+      StoreBean createdStore = this.storeRepository.save(storeBean);
+      StoreReadDTO storeReadDTO = StoreMapper.toDTO(createdStore);
+
+      return ResponseBuilder.success("Store has been created sucessfully!", storeReadDTO);
+    } catch (Exception e) {
+      return ResponseBuilder.error(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
     }
-
-    Long ownerId = storeDTO.getOwner().getId();
-    store.getOwner().setId(ownerId);
-    StoreBean createdStore = this.storeRepository.save(store);
-
-    return StoreMapper.toDTO(createdStore);
   }
 
-  public StoreDTO getById(Long id) {
-    StoreBean store = this.storeRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Store not found with id " + id + "."));
-    return StoreMapper.toDTO(store);
+  public ResponseEntity<?> getById(Long id) {
+
+    try {
+      StoreBean store = this.storeRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Store not found with id " + id + "."));
+      StoreReadDTO storeDTO = StoreMapper.toDTO(store);
+      return ResponseBuilder.success(null, storeDTO);
+
+    } catch (NotFoundException e) {
+      return ResponseBuilder.notFound(e.getMessage());
+    }
   }
 
-  public List<StoreDTO> getAll(String whereEncodedURI) {
+  public ResponseEntity<?> getAll(String whereEncodedURI) {
+
     WhereBuilder<StoreBean> wb = new WhereBuilder<>(StoreBean.class);
     wb.parseWhereEncodedURIParams(whereEncodedURI);
     Specification<StoreBean> spec = wb.build();
 
     List<StoreBean> storeList = this.storeRepository.findAll(spec);
-    return storeList.stream().map(StoreMapper::toDTO).toList();
+    List<StoreReadDTO> storeReadList = storeList.stream().map(StoreMapper::toDTO).toList();
+
+    return ResponseBuilder.success(null, storeReadList);
   }
 
   @Transactional
-  public StoreDTO update(Long id, StoreDTO storeDTO, MultipartFile file) {
-    StoreBean storeBean = this.storeRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Store not found with id: " + id + "!"));
+  public ResponseEntity<?> update(Long id, StoreCreateDTO storeBody, MultipartFile file) {
 
-    if (storeBean.getOwner().getId() != userContext.getUserId()) {
-      throw new ForbiddenException("You don't have permission to update this store!");
-    }
-    boolean hasLogoToUpload = (file != null);
+    try {
 
-    if (storeBean.getLogo() != null) {
-      this.fileRepository.delete(storeBean.getLogo());
-      storeBean.setLogo(null);
-    }
+      StoreBean storeBean = this.storeRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Store not found with id: " + id + "!"));
 
-    if (hasLogoToUpload && storeBean.getLogo() == null) {
-      try {
-        FileBean fileBean = fileService.createFileBean(file);
-        FileBean newLogo = fileRepository.save(fileBean);
-        storeBean.setLogo(newLogo);
-      } catch (Exception e) {
-        throw new RuntimeException("Failed to upload new logo", e);
+      if (storeBean.getOwner().getId() != userContext.getUserId()) {
+        throw new ForbiddenException("You don't have permission to update this store!");
       }
+
+      boolean hasLogoToUpload = (file != null);
+
+      if (storeBean.getLogo() != null) {
+        this.fileRepository.delete(storeBean.getLogo());
+        storeBean.setLogo(null);
+      }
+
+      if (hasLogoToUpload && storeBean.getLogo() == null) {
+        try {
+          FileBean fileBean = fileService.createFileBean(file);
+          FileBean newLogo = fileRepository.save(fileBean);
+          storeBean.setLogo(newLogo);
+        } catch (Exception e) {
+          throw new RuntimeException("Failed to upload new logo.", e);
+        }
+      }
+
+      storeBean.setName(storeBody.getName());
+      storeBean.setDescription(storeBody.getDescription());
+      storeBean.setSlug(storeBody.getSlug());
+      storeBean.setIsActive(storeBody.getIsActive());
+
+      StoreBean updatedStore = this.storeRepository.save(storeBean);
+      StoreReadDTO storeReadDTO = StoreMapper.toDTO(updatedStore);
+
+      return ResponseBuilder.success("Store has been updated sucessfully!", storeReadDTO);
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to update Store. Cause: " + e.getMessage());
     }
-
-    storeBean.setName(storeDTO.getName());
-    storeBean.setDescription(storeDTO.getDescription());
-    storeBean.setSlug(storeDTO.getSlug());
-    storeBean.setIsActive(storeDTO.getIsActive());
-    StoreBean updatedStore = this.storeRepository.save(storeBean);
-
-    return StoreMapper.toDTO(updatedStore);
   }
 
-  public void delete(Long id) {
-    StoreBean storeBean = this.storeRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Store not found with id: " + id + "!"));
-    this.storeRepository.delete(storeBean);
+  public ResponseEntity<?> delete(Long id) {
+    try {
+
+      StoreBean storeBean = this.storeRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Store not found with id: " + id + "!"));
+      this.storeRepository.delete(storeBean);
+
+      return ResponseBuilder.success("Store has been deleted sucessfully!");
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to delete Store. Cause: " + e.getMessage());
+
+    }
   }
 
-  public StoreDashboardMetricsDTO getDashboardMetricsByStoreId(Long storeId) {
+  public ResponseEntity<?> getDashboardMetricsByStoreId(Long storeId) {
+    try {
 
-    StoreBean storeBean = this.storeRepository.findById(storeId)
-        .orElseThrow(() -> new NotFoundException("Store not found with id " + storeId));
+      StoreBean storeBean = this.storeRepository.findById(storeId)
+          .orElseThrow(() -> new NotFoundException("Store not found with id " + storeId));
 
-    if (storeBean.getOwner().getId() != userContext.getUserId()) {
-      throw new ForbiddenException("Owner don't have access to this store informations.");
+      if (storeBean.getOwner().getId() != userContext.getUserId()) {
+        throw new ForbiddenException("Owner don't have access to this store informations.");
+      }
+
+      LocalDate today = LocalDate.now();
+
+      LocalDateTime currentMonthStart = today.withDayOfMonth(1).atStartOfDay();
+      LocalDateTime currentMonthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59);
+
+      LocalDateTime previousMonthStart = currentMonthStart.minusMonths(1);
+      LocalDateTime previousMonthEnd = currentMonthEnd.minusMonths(1);
+
+      LocalDateTime currentDayStart = today.atStartOfDay();
+      LocalDateTime currentDayEnd = today.atTime(23, 59, 59);
+
+      LocalDateTime previousDayStart = today.minusDays(1).atStartOfDay();
+      LocalDateTime previousDayEnd = today.minusDays(1).atTime(23, 59, 59);
+
+      // 1. Total de vendas no mês (unidades)
+      Integer monthlySales = orderRepository.sumSalesByPeriod(
+          storeId,
+          currentMonthStart,
+          currentMonthEnd);
+      Integer previousMonthlySales = orderRepository.sumSalesByPeriod(
+          storeId,
+          previousMonthStart,
+          previousMonthEnd);
+      BigDecimal diffMonthlySalesPercent = calculatePercentChange(monthlySales, previousMonthlySales);
+
+      // 2. Total de vendas hoje (unidades)
+      Integer dailySales = orderRepository.sumSalesByPeriod(
+          storeId,
+          currentDayStart,
+          currentDayEnd);
+      Integer previousDaySales = orderRepository.sumSalesByPeriod(
+          storeId,
+          previousDayStart,
+          previousDayEnd);
+      BigDecimal diffDailySalesPercent = calculatePercentChange(dailySales, previousDaySales);
+
+      // 3. Performance (valor total em Moeda)
+      BigDecimal monthlyRevenue = orderRepository.sumRevenueByPeriod(
+          storeId,
+          currentMonthStart,
+          currentMonthEnd);
+      BigDecimal lastMonthlyRevenue = orderRepository.sumRevenueByPeriod(
+          storeId,
+          previousMonthStart,
+          previousMonthEnd);
+      BigDecimal diffMonthlyRevenuePercent = calculatePercentChange(monthlyRevenue, lastMonthlyRevenue);
+
+      // 4. Média diária (R$)
+      BigDecimal averageDaily = monthlyRevenue.divide(
+          BigDecimal.valueOf(today.getDayOfMonth()),
+          2, RoundingMode.HALF_UP);
+      BigDecimal averageYestarday = lastMonthlyRevenue.divide(
+          BigDecimal.valueOf(today.getDayOfMonth()),
+          2, RoundingMode.HALF_UP);
+      BigDecimal diffDailyAvarageSalesPercent = calculatePercentChange(averageDaily, averageYestarday);
+
+      List<Map<String, Object>> rawData = orderRepository.getDailySalesChartData(storeId);
+
+      // Crie um mapa para todos os dias do mês
+      Map<Integer, ChartDataDTO> resultMap = new TreeMap<>();
+      LocalDate now = LocalDate.now();
+      int daysInMonth = now.lengthOfMonth();
+
+      // Inicialize todos os dias com valores zerados
+      for (int day = 1; day <= daysInMonth; day++) {
+        ChartDataDTO dto = new ChartDataDTO();
+        dto.setDay(day);
+        dto.setRevenue(BigDecimal.ZERO);
+        dto.setUnits(0);
+        resultMap.put(day, dto);
+      }
+
+      // Preencha com os dados existentes
+      for (Map<String, Object> row : rawData) {
+        Integer day = ((Number) row.get("day")).intValue();
+        ChartDataDTO dto = resultMap.get(day);
+        dto.setUnits(((Number) row.get("units")).intValue());
+        dto.setRevenue(new BigDecimal(row.get("revenue").toString()));
+      }
+
+      // Converta para lista ordenada
+      List<ChartDataDTO> dataChart = new ArrayList<>(resultMap.values());
+
+      StoreDashboardMetricsDTO result = new StoreDashboardMetricsDTO();
+      result.setDailySales(dailySales);
+      result.setMonthlySales(monthlySales);
+      result.setMonthlyRevenue(monthlyRevenue);
+      result.setAverageDaily(averageDaily);
+      result.setDataChart(dataChart);
+      result.setDiffMonthlyRevenuePercent(diffMonthlyRevenuePercent);
+      result.setDiffDailySalesPercent(diffDailySalesPercent);
+      result.setDiffMonthlySalesPercent(diffMonthlySalesPercent);
+      result.setDiffDailyAvarageSalesPercent(diffDailyAvarageSalesPercent);
+      result.setStore(StoreMapper.toDTO(storeBean));
+
+      return ResponseBuilder.success(null, result);
+
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest(e.getMessage());
     }
-
-    LocalDate today = LocalDate.now();
-
-    LocalDateTime currentMonthStart = today.withDayOfMonth(1).atStartOfDay();
-    LocalDateTime currentMonthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59);
-
-    LocalDateTime previousMonthStart = currentMonthStart.minusMonths(1);
-    LocalDateTime previousMonthEnd = currentMonthEnd.minusMonths(1);
-
-    LocalDateTime currentDayStart = today.atStartOfDay();
-    LocalDateTime currentDayEnd = today.atTime(23, 59, 59);
-
-    LocalDateTime previousDayStart = today.minusDays(1).atStartOfDay();
-    LocalDateTime previousDayEnd = today.minusDays(1).atTime(23, 59, 59);
-
-    // 1. Total de vendas no mês (unidades)
-    Integer monthlySales = orderRepository.sumSalesByPeriod(
-        storeId,
-        currentMonthStart,
-        currentMonthEnd);
-    Integer previousMonthlySales = orderRepository.sumSalesByPeriod(
-        storeId,
-        previousMonthStart,
-        previousMonthEnd);
-    BigDecimal diffMonthlySalesPercent = calculatePercentChange(monthlySales, previousMonthlySales);
-
-    // 2. Total de vendas hoje (unidades)
-    Integer dailySales = orderRepository.sumSalesByPeriod(
-        storeId,
-        currentDayStart,
-        currentDayEnd);
-    Integer previousDaySales = orderRepository.sumSalesByPeriod(
-        storeId,
-        previousDayStart,
-        previousDayEnd);
-    BigDecimal diffDailySalesPercent = calculatePercentChange(dailySales, previousDaySales);
-
-    // 3. Performance (valor total em Moeda)
-    BigDecimal monthlyRevenue = orderRepository.sumRevenueByPeriod(
-        storeId,
-        currentMonthStart,
-        currentMonthEnd);
-    BigDecimal lastMonthlyRevenue = orderRepository.sumRevenueByPeriod(
-        storeId,
-        previousMonthStart,
-        previousMonthEnd);
-    BigDecimal diffMonthlyRevenuePercent = calculatePercentChange(monthlyRevenue, lastMonthlyRevenue);
-
-    // 4. Média diária (R$)
-    BigDecimal averageDaily = monthlyRevenue.divide(
-        BigDecimal.valueOf(today.getDayOfMonth()),
-        2, RoundingMode.HALF_UP);
-    BigDecimal averageYestarday = lastMonthlyRevenue.divide(
-        BigDecimal.valueOf(today.getDayOfMonth()),
-        2, RoundingMode.HALF_UP);
-    BigDecimal diffDailyAvarageSalesPercent = calculatePercentChange(averageDaily, averageYestarday);
-
-    List<Map<String, Object>> rawData = orderRepository.getDailySalesChartData(storeId);
-
-    // Crie um mapa para todos os dias do mês
-    Map<Integer, ChartDataDTO> resultMap = new TreeMap<>();
-    LocalDate now = LocalDate.now();
-    int daysInMonth = now.lengthOfMonth();
-
-    // Inicialize todos os dias com valores zerados
-    for (int day = 1; day <= daysInMonth; day++) {
-      ChartDataDTO dto = new ChartDataDTO();
-      dto.setDay(day);
-      dto.setRevenue(BigDecimal.ZERO);
-      dto.setUnits(0);
-      resultMap.put(day, dto);
-    }
-
-    // Preencha com os dados existentes
-    for (Map<String, Object> row : rawData) {
-      Integer day = ((Number) row.get("day")).intValue();
-      ChartDataDTO dto = resultMap.get(day);
-      dto.setUnits(((Number) row.get("units")).intValue());
-      dto.setRevenue(new BigDecimal(row.get("revenue").toString()));
-    }
-
-    // Converta para lista ordenada
-    List<ChartDataDTO> dataChart = new ArrayList<>(resultMap.values());
-
-    StoreDashboardMetricsDTO result = new StoreDashboardMetricsDTO();
-    result.setDailySales(dailySales);
-    result.setMonthlySales(monthlySales);
-    result.setMonthlyRevenue(monthlyRevenue);
-    result.setAverageDaily(averageDaily);
-    result.setDataChart(dataChart);
-    result.setDiffMonthlyRevenuePercent(diffMonthlyRevenuePercent);
-    result.setDiffDailySalesPercent(diffDailySalesPercent);
-    result.setDiffMonthlySalesPercent(diffMonthlySalesPercent);
-    result.setDiffDailyAvarageSalesPercent(diffDailyAvarageSalesPercent);
-    result.setStore(StoreMapper.toDTO(storeBean));
-
-    return result;
   }
 
-  public StoreDashboardMetricsDTO getDashboardMetrics() {
+  public ResponseEntity<?> getDashboardMetrics() {
 
-    Long userId = userContext.getUserId();
+    try {
 
-    LocalDate today = LocalDate.now();
+      Long userId = userContext.getUserId();
 
-    LocalDateTime currentMonthStart = today.withDayOfMonth(1).atStartOfDay();
-    LocalDateTime currentMonthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59);
+      LocalDate today = LocalDate.now();
 
-    LocalDateTime previousMonthStart = currentMonthStart.minusMonths(1);
-    LocalDateTime previousMonthEnd = currentMonthEnd.minusMonths(1);
+      LocalDateTime currentMonthStart = today.withDayOfMonth(1).atStartOfDay();
+      LocalDateTime currentMonthEnd = today.withDayOfMonth(today.lengthOfMonth()).atTime(23, 59, 59);
 
-    LocalDateTime currentDayStart = today.atStartOfDay();
-    LocalDateTime currentDayEnd = today.atTime(23, 59, 59);
+      LocalDateTime previousMonthStart = currentMonthStart.minusMonths(1);
+      LocalDateTime previousMonthEnd = currentMonthEnd.minusMonths(1);
 
-    LocalDateTime previousDayStart = today.minusDays(1).atStartOfDay();
-    LocalDateTime previousDayEnd = today.minusDays(1).atTime(23, 59, 59);
+      LocalDateTime currentDayStart = today.atStartOfDay();
+      LocalDateTime currentDayEnd = today.atTime(23, 59, 59);
 
-    // 1. Total de vendas no mês (unidades)
-    Integer monthlySales = orderRepository.sumAllStoresSalesByPeriod(
-        userId,
-        currentMonthStart,
-        currentMonthEnd);
-    Integer previousMonthlySales = orderRepository.sumAllStoresSalesByPeriod(
-        userId,
-        previousMonthStart,
-        previousMonthEnd);
-    BigDecimal diffMonthlySalesPercent = calculatePercentChange(monthlySales, previousMonthlySales);
+      LocalDateTime previousDayStart = today.minusDays(1).atStartOfDay();
+      LocalDateTime previousDayEnd = today.minusDays(1).atTime(23, 59, 59);
 
-    // 2. Total de vendas hoje (unidades)
-    Integer dailySales = orderRepository.sumAllStoresSalesByPeriod(
-        userId,
-        currentDayStart,
-        currentDayEnd);
-    Integer previousDaySales = orderRepository.sumAllStoresSalesByPeriod(
-        userId,
-        previousDayStart,
-        previousDayEnd);
-    BigDecimal diffDailySalesPercent = calculatePercentChange(dailySales, previousDaySales);
+      // 1. Total de vendas no mês (unidades)
+      Integer monthlySales = orderRepository.sumAllStoresSalesByPeriod(
+          userId,
+          currentMonthStart,
+          currentMonthEnd);
+      Integer previousMonthlySales = orderRepository.sumAllStoresSalesByPeriod(
+          userId,
+          previousMonthStart,
+          previousMonthEnd);
+      BigDecimal diffMonthlySalesPercent = calculatePercentChange(monthlySales, previousMonthlySales);
 
-    // 3. Performance (valor total em Moeda)
-    BigDecimal monthlyRevenue = orderRepository.sumAllStoresRevenueByPeriod(
-        userId,
-        currentMonthStart,
-        currentMonthEnd);
-    BigDecimal lastMonthlyRevenue = orderRepository.sumAllStoresRevenueByPeriod(
-        userId,
-        previousMonthStart,
-        previousMonthEnd);
-    BigDecimal diffMonthlyRevenuePercent = calculatePercentChange(monthlyRevenue, lastMonthlyRevenue);
+      // 2. Total de vendas hoje (unidades)
+      Integer dailySales = orderRepository.sumAllStoresSalesByPeriod(
+          userId,
+          currentDayStart,
+          currentDayEnd);
+      Integer previousDaySales = orderRepository.sumAllStoresSalesByPeriod(
+          userId,
+          previousDayStart,
+          previousDayEnd);
+      BigDecimal diffDailySalesPercent = calculatePercentChange(dailySales, previousDaySales);
 
-    // 4. Média diária (R$)
-    BigDecimal averageDaily = monthlyRevenue.divide(
-        BigDecimal.valueOf(today.getDayOfMonth()),
-        2, RoundingMode.HALF_UP);
-    BigDecimal averageYestarday = lastMonthlyRevenue.divide(
-        BigDecimal.valueOf(today.getDayOfMonth()),
-        2, RoundingMode.HALF_UP);
-    BigDecimal diffDailyAvarageSalesPercent = calculatePercentChange(averageDaily, averageYestarday);
+      // 3. Performance (valor total em Moeda)
+      BigDecimal monthlyRevenue = orderRepository.sumAllStoresRevenueByPeriod(
+          userId,
+          currentMonthStart,
+          currentMonthEnd);
+      BigDecimal lastMonthlyRevenue = orderRepository.sumAllStoresRevenueByPeriod(
+          userId,
+          previousMonthStart,
+          previousMonthEnd);
+      BigDecimal diffMonthlyRevenuePercent = calculatePercentChange(monthlyRevenue, lastMonthlyRevenue);
 
-    List<Map<String, Object>> rawData = orderRepository.getAllStoresDailySalesChartData(userId);
+      // 4. Média diária (R$)
+      BigDecimal averageDaily = monthlyRevenue.divide(
+          BigDecimal.valueOf(today.getDayOfMonth()),
+          2, RoundingMode.HALF_UP);
+      BigDecimal averageYestarday = lastMonthlyRevenue.divide(
+          BigDecimal.valueOf(today.getDayOfMonth()),
+          2, RoundingMode.HALF_UP);
+      BigDecimal diffDailyAvarageSalesPercent = calculatePercentChange(averageDaily, averageYestarday);
 
-    // Crie um mapa para todos os dias do mês
-    Map<Integer, ChartDataDTO> resultMap = new TreeMap<>();
-    LocalDate now = LocalDate.now();
-    int daysInMonth = now.lengthOfMonth();
+      List<Map<String, Object>> rawData = orderRepository.getAllStoresDailySalesChartData(userId);
 
-    // Inicialize todos os dias com valores zerados
-    for (int day = 1; day <= daysInMonth; day++) {
-      ChartDataDTO dto = new ChartDataDTO();
-      dto.setDay(day);
-      dto.setRevenue(BigDecimal.ZERO);
-      dto.setUnits(0);
-      resultMap.put(day, dto);
+      // Crie um mapa para todos os dias do mês
+      Map<Integer, ChartDataDTO> resultMap = new TreeMap<>();
+      LocalDate now = LocalDate.now();
+      int daysInMonth = now.lengthOfMonth();
+
+      // Inicialize todos os dias com valores zerados
+      for (int day = 1; day <= daysInMonth; day++) {
+        ChartDataDTO dto = new ChartDataDTO();
+        dto.setDay(day);
+        dto.setRevenue(BigDecimal.ZERO);
+        dto.setUnits(0);
+        resultMap.put(day, dto);
+      }
+
+      // Preencha com os dados existentes
+      for (Map<String, Object> row : rawData) {
+        Integer day = ((Number) row.get("day")).intValue();
+        ChartDataDTO dto = resultMap.get(day);
+        dto.setUnits(((Number) row.get("units")).intValue());
+        dto.setRevenue(new BigDecimal(row.get("revenue").toString()));
+      }
+
+      // Converta para lista ordenada
+      List<ChartDataDTO> dataChart = new ArrayList<>(resultMap.values());
+
+      StoreDashboardMetricsDTO result = new StoreDashboardMetricsDTO();
+      result.setDailySales(dailySales);
+      result.setMonthlySales(monthlySales);
+      result.setMonthlyRevenue(monthlyRevenue);
+      result.setAverageDaily(averageDaily);
+      result.setDataChart(dataChart);
+      result.setDiffMonthlyRevenuePercent(diffMonthlyRevenuePercent);
+      result.setDiffDailySalesPercent(diffDailySalesPercent);
+      result.setDiffMonthlySalesPercent(diffMonthlySalesPercent);
+      result.setDiffDailyAvarageSalesPercent(diffDailyAvarageSalesPercent);
+
+      return ResponseBuilder.success(null, result);
+
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest(e.getMessage());
     }
-
-    // Preencha com os dados existentes
-    for (Map<String, Object> row : rawData) {
-      Integer day = ((Number) row.get("day")).intValue();
-      ChartDataDTO dto = resultMap.get(day);
-      dto.setUnits(((Number) row.get("units")).intValue());
-      dto.setRevenue(new BigDecimal(row.get("revenue").toString()));
-    }
-
-    // Converta para lista ordenada
-    List<ChartDataDTO> dataChart = new ArrayList<>(resultMap.values());
-
-    StoreDashboardMetricsDTO result = new StoreDashboardMetricsDTO();
-    result.setDailySales(dailySales);
-    result.setMonthlySales(monthlySales);
-    result.setMonthlyRevenue(monthlyRevenue);
-    result.setAverageDaily(averageDaily);
-    result.setDataChart(dataChart);
-    result.setDiffMonthlyRevenuePercent(diffMonthlyRevenuePercent);
-    result.setDiffDailySalesPercent(diffDailySalesPercent);
-    result.setDiffMonthlySalesPercent(diffMonthlySalesPercent);
-    result.setDiffDailyAvarageSalesPercent(diffDailyAvarageSalesPercent);
-
-    return result;
 
   }
 
