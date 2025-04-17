@@ -40,6 +40,10 @@ public class OrderBean extends Bean {
   @Column(nullable = false)
   private OrderStatus status = OrderStatus.PENDING;
 
+  @ManyToOne
+  @JoinColumn(name = "cupon_id", referencedColumnName = "id")
+  private CuponBean cupon;
+
   private BigDecimal totalAmount;
   private BigDecimal taxes;
   private BigDecimal discount;
@@ -142,6 +146,14 @@ public class OrderBean extends Bean {
 
   public void setUUID(String uuid) {
     this.uuid = uuid;
+  }
+
+  public CuponBean getCupon() {
+    return cupon;
+  }
+
+  public void setCupon(CuponBean cupon) {
+    this.cupon = cupon;
   }
 
 }

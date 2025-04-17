@@ -14,9 +14,19 @@ public class ResponseBuilder {
     return ResponseEntity.ok(response);
   }
 
+  public static <T> ResponseEntity<ApiResponse<T>> success(T data) {
+    ApiResponse<T> response = new ApiResponse<>(HttpStatus.OK.value(), null, data);
+    return ResponseEntity.ok(response);
+  }
+
   public static <T> ResponseEntity<ApiResponse<T>> success(String message) {
     ApiResponse<T> response = new ApiResponse<>(HttpStatus.OK.value(), message, null);
     return ResponseEntity.ok(response);
+  }
+
+  public static <T> ResponseEntity<ApiResponse<T>> forbidden(String message) {
+    ApiResponse<T> response = new ApiResponse<>(HttpStatus.FORBIDDEN.value(), message, null);
+    return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
   }
 
   public static <T> ResponseEntity<ApiResponse<T>> created(String message, T data) {

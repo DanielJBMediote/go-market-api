@@ -2,6 +2,7 @@ package gomarketapi.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import gomarketapi.helpers.ResponseBuilder;
 import gomarketapi.model.CategoryBean;
 import gomarketapi.service.CategoryService;
 
@@ -26,27 +28,29 @@ public class CategoryController {
   }
 
   @PostMapping
-  public CategoryBean create(@RequestBody CategoryBean categoryBody) throws Exception {
-    return this.categoryService.create(categoryBody);
+  public ResponseEntity<?> create(@RequestBody CategoryBean categoryBody) throws Exception {
+    CategoryBean category = this.categoryService.create(categoryBody);
+    return ResponseBuilder.success("Category created sucessfully!", category);
   }
 
   @GetMapping("/{id}")
-  public CategoryBean getById(@PathVariable Long id) throws Exception {
+  public ResponseEntity<?> getById(@PathVariable Long id) throws Exception {
     throw new UnsupportedOperationException("Unimplemented method 'getById'");
   }
 
   @GetMapping
-  public List<CategoryBean> getAll(@RequestParam(required = false) String where) throws Exception {
-    return this.categoryService.getAll(where);
+  public ResponseEntity<?> getAll(@RequestParam(required = false) String where) throws Exception {
+    List<CategoryBean> list = this.categoryService.getAll(where);
+    return ResponseBuilder.success(list);
   }
 
   @PutMapping("/{id}")
-  public CategoryBean update(@PathVariable Long id, @RequestBody CategoryBean entity) throws Exception {
+  public ResponseEntity<?> update(@PathVariable Long id, @RequestBody CategoryBean entity) throws Exception {
     throw new UnsupportedOperationException("Unimplemented method 'update'");
   }
 
   @DeleteMapping("/{id}")
-  public void delete(@PathVariable Long id) throws Exception {
+  public ResponseEntity<?> delete(@PathVariable Long id) throws Exception {
     throw new UnsupportedOperationException("Unimplemented method 'delete'");
   }
 

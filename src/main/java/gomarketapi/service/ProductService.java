@@ -6,12 +6,14 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import gomarketapi.dto.products.ProductCreateDTO;
 import gomarketapi.dto.products.ProductReadDTO;
 import gomarketapi.exceptions.NotFoundException;
+import gomarketapi.helpers.ResponseBuilder;
 import gomarketapi.helpers.Where;
 import gomarketapi.helpers.WhereBuilder;
 import gomarketapi.mapper.ProductMapper;
@@ -52,89 +54,118 @@ public class ProductService {
     this.productFileRepository = productFileRepository;
   }
 
-  public ProductReadDTO create(ProductCreateDTO prodCreateDTO) {
+  public ResponseEntity<?> create(ProductCreateDTO productBody, MultipartFile[] files) {
 
-    ProductBean productBean = new ProductBean();
+    try {
 
-    productBean.setName(prodCreateDTO.getName());
-    productBean.setDescription(prodCreateDTO.getDescription());
-    productBean.setIsActive(true);
-    productBean.setIsFeatured(false);
+      ProductBean productBean = new ProductBean();
 
-    CategoryBean categoryBean = this.categoryRepository.findById(prodCreateDTO.getCategory().getId())
-        .orElseThrow(() -> new NotFoundException("Category not found with id: " + prodCreateDTO.getCategory().getId()));
-    StoreBean storeBean = this.storeRepository.findById(prodCreateDTO.getStore().getId())
-        .orElseThrow(() -> new NotFoundException("Store not found with id: " + prodCreateDTO.getStore().getId()));
+      productBean.setName(productBody.getName());
+      productBean.setDescription(productBody.getDescription());
+      productBean.setIsActive(true);
+      productBean.setIsFeatured(false);
 
-    productBean.setCategory(categoryBean);
-    productBean.setStore(storeBean);
+      CategoryBean categoryBean = this.categoryRepository.findById(productBody.getCategory().getId())
+          .orElseThrow(
+              () -> new NotFoundException("Category not found with id: " + productBody.getCategory().getId()));
+      StoreBean storeBean = this.storeRepository.findById(productBody.getStore().getId())
+          .orElseThrow(() -> new NotFoundException("Store not found with id: " + productBody.getStore().getId()));
 
-    productBean.setPrice(prodCreateDTO.getPrice());
-    productBean.setLowestPrice(prodCreateDTO.getPrice());
-    productBean.setHighestPrice(prodCreateDTO.getPrice());
+      productBean.setCategory(categoryBean);
+      productBean.setStore(storeBean);
 
-    productBean = this.productRepository.save(productBean);
+      productBean.setPrice(productBody.getPrice());
+      productBean.setLowestPrice(productBody.getPrice());
+      productBean.setHighestPrice(productBody.getPrice());
 
-    return ProductMapper.toDTO(productBean);
+      ProductBean createdProduct = this.productRepository.save(productBean);
+      ProductReadDTO productReadDTO = ProductMapper.toDTO(createdProduct);
+
+      this.updateImages(productReadDTO.getId(), productReadDTO, files);
+      return ResponseBuilder.created("Product created Successfully!", productReadDTO);
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to create Product! Cause: " + e.getMessage());
+    }
   }
 
-  public ProductReadDTO getById(Long id) {
-    ProductBean prodBean = this.productRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Product not found with id: " + id + "."));
+  public ResponseEntity<?> getById(Long id) {
+    try {
+      ProductBean prodBean = this.productRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Product not found with id: " + id + "."));
+      ProductReadDTO productReadtDTO = ProductMapper.toDTO(prodBean);
+      return ResponseBuilder.success(productReadtDTO);
+    } catch (NotFoundException e) {
+      return ResponseBuilder.notFound(e.getMessage());
+    }
 
-    return ProductMapper.toDTO(prodBean);
   }
 
-  public List<ProductReadDTO> getAll(String encodedURI) {
+  public ResponseEntity<?> getAll(String encodedURI) {
+
     WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
     // wb.addWhere(new Where("isActive", true, Where.Operator.EQUALS));
 
     Specification<ProductBean> spec = wb.parseWhereEncodedURIParams(encodedURI).build();
-    List<ProductBean> prodList = this.productRepository.findAll(spec);
+    List<ProductBean> productList = this.productRepository.findAll(spec);
 
-    return prodList.stream().map(ProductMapper::toDTO).toList();
+    List<ProductReadDTO> productReadDTOList = productList.stream().map(ProductMapper::toDTO).toList();
+    return ResponseBuilder.success(productReadDTOList);
   }
 
-  public ProductReadDTO update(Long id, ProductReadDTO prodDTO) {
-    ProductBean prodBean = this.productRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Product not found with id: " + id + "."));
+  public ResponseEntity<?> update(Long id, ProductReadDTO productBody, MultipartFile[] files) {
+    try {
 
-    prodBean.setName(prodDTO.getName());
-    prodBean.setDescription(prodDTO.getDescription());
-    prodBean.setIsActive(prodDTO.getIsActive());
-    prodBean.setIsFeatured(prodDTO.getIsFeatured());
-    prodBean.getStore().setId(prodDTO.getStore().getId());
+      ProductBean prodBean = this.productRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Product not found with id: " + id + "."));
 
-    // Carrega a categoria existente do banco (ou verifica se existe)
-    CategoryBean categoryBean = this.categoryRepository.findById(prodDTO.getCategory().getId())
-        .orElseThrow(() -> new NotFoundException("Category not found with id: " + prodDTO.getCategory().getId()));
+      prodBean.setName(productBody.getName());
+      prodBean.setDescription(productBody.getDescription());
+      prodBean.setIsActive(productBody.getIsActive());
+      prodBean.setIsFeatured(productBody.getIsFeatured());
+      prodBean.getStore().setId(productBody.getStore().getId());
 
-    prodBean.setCategory(categoryBean);
-    prodBean.setPrice(prodDTO.getPrice());
+      // Carrega a categoria existente do banco (ou verifica se existe)
+      CategoryBean categoryBean = this.categoryRepository.findById(productBody.getCategory().getId())
+          .orElseThrow(() -> new NotFoundException("Category not found with id: " + productBody.getCategory().getId()));
 
-    // Update LowestPrice only if the current Price is less than the old LowestPrice
-    if (prodBean.getPrice().compareTo(prodBean.getLowestPrice()) == -1) {
-      prodBean.setLowestPrice(prodBean.getPrice());
+      prodBean.setCategory(categoryBean);
+      prodBean.setPrice(productBody.getPrice());
+
+      // Update LowestPrice only if the current Price is less than the old LowestPrice
+      if (prodBean.getPrice().compareTo(prodBean.getLowestPrice()) == -1) {
+        prodBean.setLowestPrice(prodBean.getPrice());
+      }
+      // Update HighestPrice only if the current Price is greater than the old
+      // HighestPrice
+      if (prodBean.getPrice().compareTo(prodBean.getHighestPrice()) == 1) {
+        prodBean.setHighestPrice(prodBean.getPrice());
+      }
+
+      ProductBean updatedProductBean = this.productRepository.save(prodBean);
+      ProductReadDTO productReadtDTO = ProductMapper.toDTO(updatedProductBean);
+      this.updateImages(id, productBody, files);
+      return ResponseBuilder.success("Product has been updated sucessfully!", productReadtDTO);
+    } catch (Exception e) {
+      return ResponseBuilder.success("Faile to update Product! Cause " + e.getMessage());
     }
-    // Update HighestPrice only if the current Price is greater than the old
-    // HighestPrice
-    if (prodBean.getPrice().compareTo(prodBean.getHighestPrice()) == 1) {
-      prodBean.setHighestPrice(prodBean.getPrice());
-    }
-
-    ProductBean updatedProductBean = this.productRepository.save(prodBean);
-    return ProductMapper.toDTO(updatedProductBean);
   }
 
-  public void delete(Long id) {
-    ProductBean productBean = productRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Product not found with ID: " + id));
+  public ResponseEntity<?> delete(Long id) {
 
-    this.productRepository.delete(productBean);
+    try {
+      ProductBean productBean = productRepository.findById(id)
+          .orElseThrow(() -> new NotFoundException("Product not found with ID: " + id));
+
+      this.productRepository.delete(productBean);
+
+      return ResponseBuilder.success("Product has been deleted sucessfully!");
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to delete product! Cause " + e.getMessage());
+    }
   }
 
   @Transactional
-  public void updateImages(Long id, ProductReadDTO previousProduct, MultipartFile[] files) {
+  private void updateImages(Long id, ProductReadDTO previousProduct, MultipartFile[] files) throws Exception {
 
     ProductBean productBean = productRepository.findById(id)
         .orElseThrow(() -> new NotFoundException("Product not found with ID: " + id));
@@ -196,37 +227,44 @@ public class ProductService {
     productRepository.save(productBean);
   }
 
-  public List<ProductReadDTO> getAllFeatured(String encodedURI) {
+  public ResponseEntity<?> getAllFeatured(String encodedURI) {
     WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
     wb.parseWhereEncodedURIParams(encodedURI);
     wb.addWhere(new Where("isActive", true, Where.Operator.EQUALS));
 
     Specification<ProductBean> spec = wb.build();
-    List<ProductBean> pbList = this.productRepository.findAll(spec);
+    List<ProductBean> productList = this.productRepository.findAll(spec);
 
-    pbList.sort((pb1, pb2) -> {
+    productList.sort((pb1, pb2) -> {
       int f1 = pb1.getIsFeatured() ? 1 : 0;
       int f2 = pb2.getIsFeatured() ? 1 : 0;
       return f2 - f1;
     });
 
-    return pbList.stream().map(ProductMapper::toDTO).toList();
+    List<ProductReadDTO> productReadDTOList = productList.stream().map(ProductMapper::toDTO).toList();
+    return ResponseBuilder.success(productReadDTOList);
   }
 
-  public void updateProductsAsFeatured(List<Long> prodIds) {
-    WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
-    wb.addWhere(new Where("id", prodIds, Where.Operator.IN));
-    Specification<ProductBean> spec = wb.build();
+  public ResponseEntity<?> updateProductsAsFeatured(List<Long> prodIds) {
+    try {
 
-    List<ProductBean> prodList = this.productRepository.findAll(spec);
+      WhereBuilder<ProductBean> wb = new WhereBuilder<>(ProductBean.class);
+      wb.addWhere(new Where("id", prodIds, Where.Operator.IN));
+      Specification<ProductBean> spec = wb.build();
 
-    for (ProductBean productBean : prodList) {
-      if (productBean.getIsFeatured()) {
-        continue;
+      List<ProductBean> prodList = this.productRepository.findAll(spec);
+
+      for (ProductBean productBean : prodList) {
+        if (productBean.getIsFeatured()) {
+          continue;
+        }
+        productBean.setIsFeatured(true);
       }
-      productBean.setIsFeatured(true);
+      this.productRepository.saveAll(prodList);
+      return ResponseBuilder.success(prodList.size() + " is marked as Featured!");
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to update products to 'Featured'. Cause " + e.getMessage());
     }
-    this.productRepository.saveAll(prodList);
   }
 
 }

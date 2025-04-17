@@ -3,6 +3,7 @@ package gomarketapi.controller;
 import java.util.List;
 
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,51 +31,45 @@ public class ProductController {
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ProductReadDTO create(
+  public ResponseEntity<?> create(
       @RequestPart(value = "data") ProductCreateDTO body,
       @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
 
-    ProductReadDTO prodDTO = this.productService.create(body);
-    this.productService.updateImages(prodDTO.getId(), prodDTO, files);
-
-    return prodDTO;
+    return this.productService.create(body, files);
   }
 
   @GetMapping("/{id}")
-  public ProductReadDTO getById(@PathVariable Long id) throws Exception {
+  public ResponseEntity<?> getById(@PathVariable Long id) throws Exception {
     return this.productService.getById(id);
   }
 
   @GetMapping
-  public List<ProductReadDTO> getAll(@RequestParam(required = false) String where) throws Exception {
+  public ResponseEntity<?> getAll(@RequestParam(required = false) String where) throws Exception {
     return this.productService.getAll(where);
   }
 
   @GetMapping("/featured")
-  public List<ProductReadDTO> getAllFeatued(@RequestParam(required = false) String where) throws Exception {
+  public ResponseEntity<?> getAllFeatued(@RequestParam(required = false) String where) throws Exception {
     return this.productService.getAllFeatured(where);
   }
 
   @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ProductReadDTO update(
+  public ResponseEntity<?> update(
       @PathVariable Long id,
       @RequestPart("data") ProductReadDTO body,
       @RequestPart(value = "files", required = false) MultipartFile[] files) throws Exception {
 
-    this.productService.update(id, body);
-    this.productService.updateImages(id, body, files);
-
-    return this.productService.getById(id);
+    return this.productService.update(id, body, files);
   }
 
   @DeleteMapping("/{id}")
-  public void delete(@PathVariable Long id) throws Exception {
-    this.productService.delete(id);
+  public ResponseEntity<?> delete(@PathVariable Long id) throws Exception {
+    return this.productService.delete(id);
   }
 
   @PutMapping("/mark-as-featured")
-  public void updateProductsAsFeatured(@RequestBody List<Long> prodIds) {
-    this.productService.updateProductsAsFeatured(prodIds);
+  public ResponseEntity<?> updateProductsAsFeatured(@RequestBody List<Long> prodIds) {
+    return this.productService.updateProductsAsFeatured(prodIds);
   }
 
 }

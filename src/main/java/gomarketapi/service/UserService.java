@@ -3,6 +3,7 @@ package gomarketapi.service;
 import java.util.List;
 
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import gomarketapi.contexts.UserContext;
@@ -77,7 +78,8 @@ public class UserService {
 		return UserMapper.toDTO(userBean);
 	}
 
-	public void delete(Long id) {
+	public ResponseEntity<?> delete(Long id) {
+		throw new Error("Method not implemented.");
 		// this.userRepository.deleteById(id);
 	}
 

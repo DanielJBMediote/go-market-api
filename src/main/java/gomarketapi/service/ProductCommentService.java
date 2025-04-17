@@ -30,31 +30,37 @@ public class ProductCommentService {
   }
 
   public ProductCommentReadDTO create(Long id, String comment) {
+
     ProductBean pBean = this.productRepository.findById(id)
         .orElseThrow(() -> new NotFoundException("Product not foud with id " + id));
 
     CommentBean comBean = this.commentService.create(comment);
+
     ProductCommentBean pcBean = new ProductCommentBean();
     pcBean.setProduct(pBean);
     pcBean.setComment(comBean);
 
     ProductCommentBean createPcbean = this.productCommentRepository.save(pcBean);
-    return new ProductCommentReadDTO(createPcbean);
+    ProductCommentReadDTO pcReadDTO = new ProductCommentReadDTO(createPcbean);
+
+    return pcReadDTO;
   }
 
   public ProductCommentReadDTO update(Long id, Long prodComId, String comment) {
-    ProductCommentBean pcBean = this.productCommentRepository.findById(prodComId)
+
+    ProductCommentBean productCommentBean = this.productCommentRepository.findById(prodComId)
         .orElseThrow(() -> new NotFoundException("Product Comment not foud with id " + id));
 
-    Long comId = pcBean.getComment().getId();
-    CommentBean cBean = this.commentService.update(comId, comment);
-    pcBean.setComment(cBean);
+    Long comId = productCommentBean.getComment().getId();
+    CommentBean commentBean = this.commentService.update(comId, comment);
+    productCommentBean.setComment(commentBean);
+    ProductCommentBean updatedProductCommentBean = this.productCommentRepository.save(productCommentBean);
+    ProductCommentReadDTO productCommentDTO = new ProductCommentReadDTO(updatedProductCommentBean);
 
-    return new ProductCommentReadDTO(pcBean);
+    return productCommentDTO;
   }
 
   public List<ProductCommentReadDTO> getAllComments(Long id) {
-
     WhereBuilder<ProductCommentBean> wb = new WhereBuilder<>(ProductCommentBean.class);
     wb.addWhere(new Where("product.id", id, Where.Operator.EQUALS));
     Specification<ProductCommentBean> spec = wb.build();
@@ -64,7 +70,10 @@ public class ProductCommentService {
     // pcBeanList.sort((item1, item2) ->
     // item2.getComment().getIsPinned().compareTo(item1.getComment().getIsPinned()));
 
-    return pcBeanList.stream().map(item -> new ProductCommentReadDTO(item)).toList();
+    List<ProductCommentReadDTO> productCommentList = pcBeanList.stream().map(item -> new ProductCommentReadDTO(item))
+        .toList();
+    return productCommentList;
+
   }
 
 }

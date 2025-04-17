@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import gomarketapi.dto.cupons.CuponReadDTO;
 import gomarketapi.enums.PaymentMethod;
 
 public class OrderCreateDTO {
@@ -14,6 +15,7 @@ public class OrderCreateDTO {
   private BigDecimal taxes;
   private BigDecimal discount;
   private String shippingAddress;
+  private CuponReadDTO cupon;
 
   private LocalDateTime paymentDate;
   private LocalDateTime deliveryDate;
@@ -80,6 +82,14 @@ public class OrderCreateDTO {
 
   public void setDeliveryDate(LocalDateTime deliveryDate) {
     this.deliveryDate = deliveryDate;
+  }
+
+  public CuponReadDTO getCupon() {
+    return cupon;
+  }
+
+  public void setCupon(CuponReadDTO cupon) {
+    this.cupon = cupon;
   }
 
 }

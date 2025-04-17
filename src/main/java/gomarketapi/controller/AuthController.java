@@ -35,8 +35,9 @@ public class AuthController {
   }
 
   @GetMapping("/me")
-  public UserDTO getMe() {
-    return this.authService.getMe();
+  public ResponseEntity<UserDTO> getMe() {
+    UserDTO user = this.authService.getMe();
+    return ResponseEntity.ok(user);
   }
 
 }

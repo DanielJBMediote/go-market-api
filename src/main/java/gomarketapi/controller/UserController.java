@@ -2,6 +2,7 @@ package gomarketapi.controller;
 
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import gomarketapi.dto.UserDTO;
+import gomarketapi.helpers.ResponseBuilder;
 import gomarketapi.service.UserService;
 
 @RestController
@@ -25,23 +27,26 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public UserDTO getById(@PathVariable Long id) {
-        return userService.getUserById(id);
+    public ResponseEntity<?> getById(@PathVariable Long id) {
+        UserDTO user = userService.getUserById(id);
+        return ResponseBuilder.success(user);
     }
 
     @GetMapping
-    public List<UserDTO> getAll(@RequestParam(required = false) String where) {
-        return this.userService.getUsers(where);
+    public ResponseEntity<?> getAll(@RequestParam(required = false) String where) {
+        List<UserDTO> users = this.userService.getUsers(where);
+        return ResponseBuilder.success(users);
     }
 
     @PutMapping("/{id}")
-    public UserDTO update(@PathVariable Long id, @RequestBody UserDTO body) throws Exception {
-        return this.userService.update(id, body);
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody UserDTO body) throws Exception {
+        UserDTO user = this.userService.update(id, body);
+        return ResponseBuilder.success(user);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        this.userService.delete(id);
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        throw new UnsupportedOperationException("Unimplemented method 'delete'.");
     }
 
 }

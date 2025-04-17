@@ -1,5 +1,6 @@
 package gomarketapi.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -10,6 +11,9 @@ public class CategoryBean extends Bean {
   private String name;
   private String subName;
 
+  @Column(unique = true)
+  private String code;
+
   public CategoryBean() {
   }
 
@@ -17,9 +21,10 @@ public class CategoryBean extends Bean {
     super(id);
   }
 
-  public CategoryBean(String name, String subName) {
+  public CategoryBean(String name, String subName, String code) {
     this.name = name;
     this.subName = subName;
+    this.code = code;
   }
 
   public String getName() {
@@ -36,6 +41,14 @@ public class CategoryBean extends Bean {
 
   public void setSubName(String subName) {
     this.subName = subName;
+  }
+
+  public String getCode() {
+    return code;
+  }
+
+  public void setCode(String code) {
+    this.code = code;
   }
 
 }

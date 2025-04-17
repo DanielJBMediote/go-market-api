@@ -1,5 +1,7 @@
 package gomarketapi.controller;
 
+import java.util.List;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,7 +15,10 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import gomarketapi.dto.StoreDashboardMetricsDTO;
 import gomarketapi.dto.store.StoreCreateDTO;
+import gomarketapi.dto.store.StoreReadDTO;
+import gomarketapi.helpers.ResponseBuilder;
 import gomarketapi.service.StoreService;
 
 @RestController
@@ -30,27 +35,44 @@ public class StoreControlller {
   public ResponseEntity<?> create(
       @RequestPart(value = "data") StoreCreateDTO body,
       @RequestPart(value = "file", required = false) MultipartFile file) throws Exception {
-    return this.storeService.create(body, file);
+    try {
+      StoreReadDTO store = this.storeService.create(body, file);
+      return ResponseBuilder.success("Store has been created sucessfully!", store);
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to create store. Cause: " + e.getMessage());
+    }
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<?> getById(@PathVariable Long id) throws Exception {
-    return this.storeService.getById(id);
+    StoreReadDTO store = this.storeService.getById(id);
+    return ResponseBuilder.success(store);
   }
 
   @GetMapping("/{id}/dashboard-metrics")
   public ResponseEntity<?> getDashboardMetricsByStoreId(@PathVariable Long id) {
-    return this.storeService.getDashboardMetricsByStoreId(id);
+    try {
+      StoreDashboardMetricsDTO data = this.storeService.getDashboardMetricsByStoreId(id);
+      return ResponseBuilder.success(data);
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest(e.getMessage());
+    }
   }
 
   @GetMapping("/dashboard-metrics")
   public ResponseEntity<?> getDashboardMetrics() {
-    return this.storeService.getDashboardMetrics();
+    try {
+      StoreDashboardMetricsDTO data = this.storeService.getDashboardMetrics();
+      return ResponseBuilder.success(data);
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest(e.getMessage());
+    }
   }
 
   @GetMapping
   public ResponseEntity<?> getAll(@RequestParam(required = false) String where) throws Exception {
-    return this.storeService.getAll(where);
+    List<StoreReadDTO> list = this.storeService.getAll(where);
+    return ResponseBuilder.success(list);
   }
 
   @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -58,12 +80,22 @@ public class StoreControlller {
       @PathVariable Long id,
       @RequestPart("data") StoreCreateDTO body,
       @RequestPart(value = "file", required = false) MultipartFile file) throws Exception {
-    return this.storeService.update(id, body, file);
+    try {
+      StoreReadDTO store = this.storeService.update(id, body, file);
+      return ResponseBuilder.success("Store has been updated sucessfully!", store);
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to update Store. Cause: " + e.getMessage());
+    }
   }
 
   @DeleteMapping("/{id}")
   public ResponseEntity<?> delete(@PathVariable Long id) throws Exception {
-    return this.storeService.delete(id);
+    try {
+      this.storeService.delete(id);
+      return ResponseBuilder.success("Store has been deleted sucessfully!");
+    } catch (Exception e) {
+      return ResponseBuilder.badRequest("Failed to delete Store. Cause: " + e.getMessage());
+    }
   }
 
 }
