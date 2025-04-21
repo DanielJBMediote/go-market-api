@@ -20,27 +20,22 @@ public class StoreMapper {
     return storeBean;
   }
 
-  public static StoreReadDTO toDTO(StoreBean store) {
-    StoreReadDTO storeDTO = new StoreReadDTO();
+  public static StoreReadDTO toDTO(StoreBean storeBean) {
+    StoreReadDTO store = new StoreReadDTO();
 
-    storeDTO.setId(store.getId());
-    storeDTO.setName(store.getName());
-    storeDTO.setSlug(store.getSlug());
-    storeDTO.setDescription(store.getDescription());
-    storeDTO.setIsActive(store.getIsActive());
-    storeDTO.setLikes(store.getLikes());
+    store.setId(storeBean.getId());
+    store.setName(storeBean.getName());
+    store.setSlug(storeBean.getSlug());
+    store.setDescription(storeBean.getDescription());
+    store.setIsActive(storeBean.getIsActive());
+    store.setLikes(storeBean.getLikes());
 
-    storeDTO.setOwner(UserMapper.toDTO(store.getOwner()));
+    store.setOwner(UserMapper.toDTO(storeBean.getOwner()));
+    store.setLogo(FileMapper.toDTO(storeBean.getLogo()));
 
-    if (store.getLogo() != null) {
-      store.getLogo().setData(null);
-      store.getLogo().setBase64Data(null);
-      storeDTO.setLogo(store.getLogo());
-    }
+    store.setCreatedAt(storeBean.getCreatedAt());
+    store.setUpdatedAt(storeBean.getUpdatedAt());
 
-    storeDTO.setCreatedAt(store.getCreatedAt());
-    storeDTO.setUpdatedAt(store.getUpdatedAt());
-
-    return storeDTO;
+    return store;
   }
 }

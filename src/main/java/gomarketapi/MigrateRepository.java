@@ -28,8 +28,8 @@ public class MigrateRepository {
       System.out.println(">> Found " + orders.size() + " orders(s)...");
 
       for (OrderBean order : orders) {
-        if (order.getUUID() == null) {
-          order.setUUID(UUID.randomUUID().toString());
+        if (order.getUuid() == null) {
+          order.setUuid(UUID.randomUUID().toString());
         }
       }
       orderRepository.saveAll(orders);

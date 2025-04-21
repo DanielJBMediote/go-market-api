@@ -2,9 +2,10 @@ package gomarketapi.dto.store;
 
 import java.time.LocalDateTime;
 
+import gomarketapi.dto.FileDTO;
 import gomarketapi.dto.UserDTO;
+import gomarketapi.mapper.FileMapper;
 import gomarketapi.mapper.UserMapper;
-import gomarketapi.model.FileBean;
 import gomarketapi.model.StoreBean;
 
 public class StoreReadDTO {
@@ -18,7 +19,7 @@ public class StoreReadDTO {
   private LocalDateTime updatedAt;
   private Integer likes;
   private UserDTO owner;
-  private FileBean logo;
+  private FileDTO logo;
 
   public StoreReadDTO() {
 
@@ -31,7 +32,7 @@ public class StoreReadDTO {
     this.description = storeBean.getDescription();
     this.owner = UserMapper.toDTO(storeBean.getOwner());
     this.isActive = storeBean.getIsActive();
-    this.logo = storeBean.getLogo();
+    this.logo = FileMapper.toDTO(storeBean.getLogo());
     this.likes = storeBean.getLikes();
   }
 
@@ -83,11 +84,11 @@ public class StoreReadDTO {
     this.owner = owner;
   }
 
-  public FileBean getLogo() {
+  public FileDTO getLogo() {
     return logo;
   }
 
-  public void setLogo(FileBean logo) {
+  public void setLogo(FileDTO logo) {
     this.logo = logo;
   }
 

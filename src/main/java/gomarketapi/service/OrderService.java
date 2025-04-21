@@ -17,10 +17,10 @@ import gomarketapi.enums.OrderStatus;
 import gomarketapi.exceptions.NotFoundException;
 import gomarketapi.helpers.Where;
 import gomarketapi.helpers.WhereBuilder;
-import gomarketapi.mapper.ProductMapper;
 import gomarketapi.model.CuponBean;
 import gomarketapi.model.OrderBean;
 import gomarketapi.model.OrderItemBean;
+import gomarketapi.model.ProductBean;
 import gomarketapi.model.UserBean;
 import gomarketapi.repository.OrderItemRepository;
 import gomarketapi.repository.OrderRepository;
@@ -45,7 +45,7 @@ public class OrderService {
 
     OrderBean orderBean = new OrderBean();
 
-    orderBean.setUUID(UUID.randomUUID().toString());
+    orderBean.setUuid(UUID.randomUUID().toString());
     orderBean.setStatus(OrderStatus.PENDING);
     orderBean.setTaxes(orderBody.getTaxes());
     orderBean.setClient(new UserBean(userContext.getUserId()));
@@ -63,7 +63,9 @@ public class OrderService {
       Integer quantity = itemDTO.getQuantity();
       BigDecimal totalPerProduct = productPrice.multiply(BigDecimal.valueOf(quantity));
 
-      itemBean.setProduct(ProductMapper.toEntityBean(itemDTO.getProduct()));
+      Long productId = itemDTO.getProduct().getId();
+      ProductBean productBean = new ProductBean(productId);
+      itemBean.setProduct(productBean);
       itemBean.setQuantity(quantity);
       itemBean.setUnitPrice(productPrice);
 
@@ -104,7 +106,7 @@ public class OrderService {
       CuponReadDTO cupon = this.cuponService.useCuponByCode(usedCupon.getCuponCode());
 
       BigDecimal total = subTotal.add(orderBean.getTaxes());
-      BigDecimal discountPercent = cupon.getPercentDiscount(); // Ex: 10 para 10%
+      BigDecimal discountPercent = cupon.getPercentDiscount();
 
       // Calcula o valor do desconto com precisão decimal
       BigDecimal discountAmount = total.multiply(discountPercent).divide(BigDecimal.valueOf(100));

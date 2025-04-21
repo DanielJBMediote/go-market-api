@@ -9,7 +9,6 @@ import gomarketapi.dto.store.StoreReadDTO;
 import gomarketapi.mapper.ProductMapper;
 import gomarketapi.model.CategoryBean;
 import gomarketapi.model.ProductBean;
-import gomarketapi.model.ProductFileBean;
 
 public class ProductReadDTO {
 
@@ -29,7 +28,7 @@ public class ProductReadDTO {
 
   private StoreReadDTO store;
   private CategoryBean category;
-  private List<ProductFileBean> images;
+  private List<ProductFileDTO> images;
   private List<ProductCommentReadDTO> comments;
   private List<Long> remainingImageIds;
 
@@ -41,20 +40,20 @@ public class ProductReadDTO {
     this.images = new ArrayList<>();
   }
 
-  public ProductReadDTO(ProductBean prodBean) {
-    this.id = prodBean.getId();
-    this.category = prodBean.getCategory();
-    this.name = prodBean.getName();
-    this.description = prodBean.getDescription();
-    this.isActive = prodBean.getIsActive();
-    this.isFeatured = prodBean.getIsFeatured();
-    this.likes = prodBean.getLikes();
-    this.store = new StoreReadDTO(prodBean.getStore());
-    this.price = prodBean.getPrice();
-    this.lowestPrice = prodBean.getLowestPrice();
-    this.highestPrice = prodBean.getHighestPrice();
-    this.images = prodBean.getImages();
-    this.comments = ProductMapper.mapCommentsToDTO(prodBean.getComments());
+  public ProductReadDTO(ProductBean productBean) {
+    this.id = productBean.getId();
+    this.category = productBean.getCategory();
+    this.name = productBean.getName();
+    this.description = productBean.getDescription();
+    this.isActive = productBean.getIsActive();
+    this.isFeatured = productBean.getIsFeatured();
+    this.likes = productBean.getLikes();
+    this.store = new StoreReadDTO(productBean.getStore());
+    this.price = productBean.getPrice();
+    this.lowestPrice = productBean.getLowestPrice();
+    this.highestPrice = productBean.getHighestPrice();
+    this.images = ProductMapper.mapImagesToDTO(productBean.getImages());
+    this.comments = ProductMapper.mapCommentsToDTO(productBean.getComments());
   }
 
   public Long getId() {
@@ -145,11 +144,11 @@ public class ProductReadDTO {
     this.category = category;
   }
 
-  public List<ProductFileBean> getImages() {
+  public List<ProductFileDTO> getImages() {
     return images;
   }
 
-  public void setImages(List<ProductFileBean> images) {
+  public void setImages(List<ProductFileDTO> images) {
     this.images = images;
   }
 

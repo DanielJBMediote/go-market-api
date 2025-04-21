@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Component;
 
+import gomarketapi.dto.products.ProductFileDTO;
 import gomarketapi.dto.products.ProductReadDTO;
 import gomarketapi.dto.products.comments.ProductCommentReadDTO;
 import gomarketapi.model.ProductBean;
@@ -26,11 +27,9 @@ public class ProductMapper {
     productBean.setStore(new StoreBean(prodDTO.getStore().getId()));
     productBean.setHighestPrice(prodDTO.getHighestPrice());
     productBean.setLowestPrice(prodDTO.getLowestPrice());
-    productBean.setImages(prodDTO.getImages());
+    // productBean.setImages(prodDTO.getImages());
     productBean.setIsActive(prodDTO.getIsActive());
     productBean.setIsFeatured(prodDTO.getIsFeatured());
-    // productBean.setLikes(prodDTO.getLikes());
-    // productBean.setTimesOrdered(prodDTO.getTimesOrdered());
 
     return productBean;
   }
@@ -52,26 +51,18 @@ public class ProductMapper {
     productDTO.setTimesOrdered(productBean.getTimesOrdered());
     productDTO.setCategory(productBean.getCategory());
     productDTO.setStore(StoreMapper.toDTO(productBean.getStore()));
-    productDTO.setImages(resolveImages(productBean.getImages()));
+    productDTO.setImages(mapImagesToDTO(productBean.getImages()));
     productDTO.setComments(mapCommentsToDTO(productBean.getComments()));
 
     return productDTO;
   }
 
-  private static List<ProductFileBean> resolveImages(List<ProductFileBean> images) {
+  public static List<ProductFileDTO> mapImagesToDTO(List<ProductFileBean> images) {
     if (images == null) {
-      images = new ArrayList<>();
+      return new ArrayList<>();
     } else {
-      images.forEach(image -> {
-        image.getFile().setData(null);
-        image.getFile().setBase64Data(null);
-        image.getFile().setCreatedAt(null);
-        image.getFile().setUpdatedAt(null);
-        image.setCreatedAt(null);
-        image.setUpdatedAt(null);
-      });
+      return images.stream().map(ProductMapper::convertProductFileBeanToDTO).toList();
     }
-    return images;
   }
 
   public static List<ProductCommentReadDTO> mapCommentsToDTO(List<ProductCommentBean> comments) {
@@ -81,4 +72,12 @@ public class ProductMapper {
       return comments.stream().map(item -> new ProductCommentReadDTO(item)).toList();
     }
   }
+
+  public static ProductFileDTO convertProductFileBeanToDTO(ProductFileBean productFileBean) {
+    if (productFileBean == null) {
+      return null;
+    }
+    return new ProductFileDTO(productFileBean);
+  }
+
 }

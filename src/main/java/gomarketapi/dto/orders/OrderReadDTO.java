@@ -43,7 +43,7 @@ public class OrderReadDTO {
     this.discount = orderBean.getDiscount();
     this.totalAmount = orderBean.getTotalAmount();
     this.items = orderBean.getItems().stream().map(item -> new OrderItemDTO(item)).toList();
-    this.uuid = orderBean.getUUID();
+    this.uuid = orderBean.getUuid();
   }
 
   public Long getId() {

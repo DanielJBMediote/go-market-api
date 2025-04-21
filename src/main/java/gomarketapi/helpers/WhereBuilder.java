@@ -170,6 +170,7 @@ public final class WhereBuilder<T extends Bean> {
    * Valida se o valor é compatível com o tipo do campo.
    * Aceita qualquer Number se o campo for numérico.
    */
+  @SuppressWarnings({ "unchecked", "rawtypes" })
   private void validateValueType(Field field, Object value) {
     Class<?> fieldType = field.getType();
     Class<?> valueType = value.getClass();
@@ -184,13 +185,41 @@ public final class WhereBuilder<T extends Bean> {
       fieldType = convertPrimitiveToWrapper(fieldType);
     }
 
-    // Caso 3: Verifica compatibilidade padrão (incluindo herança)
+    // Caso 3: Campo é um Enum -> verifica se o valor é uma chave válida
+    if (fieldType.isEnum()) {
+      if (value instanceof String) {
+        try {
+          Enum.valueOf((Class<Enum>) fieldType, (String) value);
+          return; // Valor é uma chave válida do Enum
+        } catch (IllegalArgumentException e) {
+          throw new IllegalArgumentException(
+              "Invalid enum value for field '" + field.getName() + "'. " +
+                  "Expected one of: " + String.join(", ", getEnumValues(fieldType)) + ", " +
+                  "Received: " + value);
+        }
+      } else {
+        throw new IllegalArgumentException(
+            "Invalid type for enum field '" + field.getName() + "'. " +
+                "Expected: String, Received: " + valueType.getSimpleName());
+      }
+    }
+
+    // Caso 4: Verifica compatibilidade padrão (incluindo herança)
     if (!fieldType.isAssignableFrom(valueType)) {
       throw new IllegalArgumentException(
           "Invalid type of field '" + field.getName() + "'. " +
               "Expected: " + fieldType.getSimpleName() + ", " +
-              "Recived: " + valueType.getSimpleName());
+              "Received: " + valueType.getSimpleName());
     }
+  }
+
+  // Método auxiliar para obter os valores válidos de um Enum
+  private List<String> getEnumValues(Class<?> enumType) {
+    List<String> values = new ArrayList<>();
+    for (Object constant : enumType.getEnumConstants()) {
+      values.add(constant.toString());
+    }
+    return values;
   }
 
   /**
