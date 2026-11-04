@@ -1,0 +1,15 @@
+services:
+  api:
+    image: maven:3.9-eclipse-temurin-21
+    working_dir: /app
+    command: mvn spring-boot:run
+
+    volumes:
+      - .:/app
+      - maven_repository:/root/.m2
+
+    environment:
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+
+volumes:
+  maven_repository:
