@@ -6,7 +6,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 
 public class AuthenticatedUser extends User {
-    private final Long userId;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private final Long userId;
 
     public AuthenticatedUser(Long userId, String username, String password,
             Collection<? extends GrantedAuthority> authorities) {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import gomarketapi.contexts.UserContext;
 import gomarketapi.dto.UserDTO;
+import gomarketapi.exceptions.EmailAlreadyExistsException;
 import gomarketapi.exceptions.ForbiddenException;
 import gomarketapi.exceptions.NotFoundException;
 import gomarketapi.helpers.WhereBuilder;
@@ -28,14 +29,18 @@ public class UserService {
 	}
 
 	public UserDTO createUser(UserDTO userDTO) {
-
 		UserBean userBean = UserMapper.toEntityBean(userDTO);
-
+		
+		if (userRepository.existsByEmail(userBean.getEmail())) {
+			throw new EmailAlreadyExistsException("Este e-mail já esta cadastrado!");
+		}
+		
 		String password = userDTO.getPassword();
 		String hashPassword = PasswordUtils.hashPassword(password);
 		userBean.setPassword(hashPassword);
 
 		UserBean savedUser = userRepository.save(userBean);
+		
 		return UserMapper.toDTO(savedUser);
 	}
 

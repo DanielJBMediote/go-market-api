@@ -11,4 +11,5 @@ import gomarketapi.model.UserBean;
 @Repository
 public interface UserRepository extends JpaRepository<UserBean, Long>, JpaSpecificationExecutor<UserBean> {
   Optional<UserBean> findByUsername(String username);
+  boolean existsByEmail(String email);
 }

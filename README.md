@@ -37,11 +37,17 @@ No Windows, use `mvnw.cmd spring-boot:run`.
 
 ## Autenticação
 
-O token JWT deve ser enviado no cabeçalho `Authorization: Bearer <token>` para as rotas protegidas. Pela configuração do Spring Security, `/api/auth/**` e `/api/files/**` são os caminhos liberados; as demais rotas exigem autenticação. A API é stateless.
+O token JWT deve ser enviado no cabeçalho `Authorization: Bearer <token>` para as rotas protegidas. Pela configuração do Spring Security, `/api/auth/**`, `/api/files/**` e `/api/hello-world` são caminhos liberados; as demais rotas exigem autenticação. A API é stateless.
 
 ## Rotas disponíveis
 
 Todas as rotas abaixo têm o prefixo `http://localhost:8080`. `{id}`, `{uuid}`, `{pcId}` e `{code}` são parâmetros de caminho.
+
+### Verificação — `/api/hello-world`
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/api/hello-world` | Retorna `Hello World` sem exigir autenticação. |
 
 ### Autenticação — `/api/auth`
 
